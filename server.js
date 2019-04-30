@@ -30,7 +30,7 @@ const io = require('socket.io')(http, { origins: '*:*'});
 
             var db = client.db('ptutdb');
 
-            var objNew = { pseudo: "test", motdepasse: "mdp" };  
+            var objNew = { pseudo: message[0].pseudo, motdepasse: message[0].motdepasse};  
             db.collection("utilisateur").insert(objNew, null, function (error, results) {
                 if (error) throw error;
                 console.log("Le document a bien été inséré");    
