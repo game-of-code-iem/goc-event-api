@@ -1,6 +1,7 @@
 const CONSTANT = require("./constant/constant")
 const express = require('express');
 const controller = require('./controller/controller');
+var MongoClient = require("mongodb").MongoClient;
 
 const app = express();
 
@@ -9,9 +10,9 @@ const app = express();
 //app.use(cors({credentials: true, origin: true}))
 
 var http = require("http").createServer(app);
-
 const io = require('socket.io')(http, { origins: '*:*'});
-    
+
+
 // CONTROLLER = controller
  io.on("connection",(socket) => {
      console.log("on connection")
@@ -22,7 +23,20 @@ const io = require('socket.io')(http, { origins: '*:*'});
      socket.on("register",message => {
          console.log("on register")
          console.log(message)
-         //CONTROLLER.newAccount(socket,message)
+
+         MongoClient.connect("mongodb://localhost:27017/gameofcode", function(error, client) {
+           if (error) return funcCallback(error);
+            console.log("Connecté à la base de données");
+
+            var db = client.db('ptutdb');
+
+            var objNew = { pseudo: "test", motdepasse: "mdp" };  
+            db.collection("utilisateur").insert(objNew, null, function (error, results) {
+                if (error) throw error;
+                console.log("Le document a bien été inséré");    
+            });
+        });
+        
      })
 
  })

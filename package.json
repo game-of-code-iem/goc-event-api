@@ -19,6 +19,8 @@
   "homepage": "https://github.com/game-of-code-iem/goc-event-api#readme",
   "dependencies": {
     "express": "^4.16.4",
+    "mongodb": "^3.2.3",
+    "mongoose": "^5.5.4",
     "nodemon": "^1.18.11",
     "socket.io": "^2.2.0"
   }
