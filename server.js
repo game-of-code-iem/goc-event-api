@@ -146,6 +146,40 @@ var connectedUser;
          }); 
      })
 
+     socket.on("joinEvent", message => {
+        console.log("on event joined: " + JSON.stringify(message))
+        MongoClient.connect("mongodb://localhost:27017/gameofcode", function(error, client) {
+            if (error) return funcCallback(error);
+             console.log("Connecté à la base de données"); 
+             var db = client.db('ptutdb');
+
+             db.collection("event").updateOne(
+                {_id : message[0].idEvent},
+                { $push: { "guests.0.login": connectedUser.login }}
+              );
+  
+            //  var eventToJoin = db.collection("event").findOne( {_id : message[0].idEvent});
+            //  if ( eventToJoin ){
+            //     console.log("eventToJoin found")
+                 
+            //     var guests = []
+            //     guests.push(eventToJoin.guests);                
+            //     console.log("guests : "+guests)
+
+            //     //  db.collection("event").updateOne(
+            //     //      {_id: new ObjectID(message[0].idEvent)}, // Filtre
+            //     //      {$set: { guests: connectedUser}})                    
+            //     //      .then((obj => {
+            //     //         console.log('Updated - ' + obj);
+            //     //      }))
+
+            //  } else {
+            //      console.log("eventToJoin NOT found")
+            //  }  
+
+         }); 
+     })
+
  })
 
 
