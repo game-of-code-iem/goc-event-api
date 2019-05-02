@@ -18,6 +18,7 @@ var connectedUser;
  io.on("connection",(socket) => {
      console.log("on connection")
 
+     
      // INSCRIPTION
      socket.on("register",message => {
          console.log("on register: " +message)
@@ -192,6 +193,16 @@ var connectedUser;
             {_id: new ObjectID(message[0].idEvent)},{$push: {picturesList: {image : message[0].imageB64,userId:message[0].userId}}})   
 
          }); 
+     })
+
+
+     //Deconnection 
+     socket.on("disconnect",() => {
+         
+        //voir quel code a envoye
+        socket.emit("disconnect",[{status:200}])
+        socket.close();
+
      })
 
  }) 
