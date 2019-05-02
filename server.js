@@ -189,7 +189,7 @@ var connectedUser;
 
             
           db.collection("event").updateOne(
-            {_id: new ObjectID(message[0].idEvent)},{$push: {picturesList: message[0].imageB64}})   
+            {_id: new ObjectID(message[0].idEvent)},{$push: {picturesList: {image : message[0].imageB64,userId:message[0].userId}}})   
 
          }); 
      })
