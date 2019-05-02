@@ -2,6 +2,7 @@ const CONSTANT = require("./constant/constant")
 const express = require('express');
 const controller = require('./controller/controller');
 var MongoClient = require("mongodb").MongoClient;
+var ObjectID = require('mongodb').ObjectID;
 
 const app = express();
 
@@ -58,24 +59,13 @@ var connectedUser;
        });        
     })
 
+    // EVENEMENTS
      socket.on("addEvent", message => {
          console.log("on event added: "+ JSON.stringify(message))
          MongoClient.connect("mongodb://localhost:27017/gameofcode", function(error, client) {
             if (error) return funcCallback(error);
              console.log("Connecté à la base de données"); 
              var db = client.db('ptutdb');
-
-            // Ajout de la photo
-            // var Item = new ItemSchema(
-            //     { img: 
-            //         { data: Buffer, contentType: String }
-            //     }
-            //   );
-            // var newItem = new Item();
-            // newItem.img.data = fs.readFileSync("path")
-            // newItem.img.contentType = ‘image/png’;
-            // newItem.save();
-
 
             // Ajout de l'événement
              var objNew = { title: message[0].title, date: message[0].date, description: message[0].description, image: message[0].image, guests: message[0].guests, admin: connectedUser, inviteCode: message[0].inviteCode, picturesList: message[0].picturesList, status: message[0].status};
@@ -93,9 +83,9 @@ var connectedUser;
              console.log("Connecté à la base de données"); 
              var db = client.db('ptutdb');
 
-             var eventsList = db.collection("event").find({admin: connectedUser}).toArray((err,res)=>{
+            var eventsList = db.collection("event").find({admin: connectedUser}).toArray((err,res)=>{
                 if (res.length > 0){
-                    console.log("eventsList found" + res)
+                    console.log("eventsList found" + JSON.stringify(res))
                     socket.emit("getEvent", [{error: 0, result: 1, data: res }])
                 } else {
                     console.log("eventsList NOT found")
@@ -112,15 +102,23 @@ var connectedUser;
              console.log("Connecté à la base de données"); 
              var db = client.db('ptutdb');
 
-             var eventToUpdate = db.collection("event").findOne( {_id : "5cc867cc04a29831421cc81c"});
+             var eventToUpdate = db.collection("event").findOne( {_id : message[0].idEvent});
 
              if ( eventToUpdate ){
                  console.log("eventToUpdate found")
-
+                 
                  db.collection("event").updateOne(
-                     {"_id" : "5cc867cc04a29831421cc81c"}, // Filter + check si le user est bien le userConnected
-                     {$set: {"name": "test"}}) // Update
-
+                     {_id: new ObjectID(message[0].idEvent), admin: connectedUser}, // Filtre
+                     {$set: {title: message[0].title, // Update
+                            date: message[0].date,
+                            description: message[0].description,
+                            image: message[0].image,
+                            picturesList: message[0].picturesList,
+                            inviteCode: message[0].inviteCode,
+                            guests: message[0].guests,
+                            status: message[0].status
+                     }})                    
+       
                      .then((obj => {
                         console.log('Updated - ' + obj);
                      }))
