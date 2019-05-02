@@ -68,7 +68,7 @@ var connectedUser;
              var db = client.db('ptutdb');
 
             // Ajout de l'événement
-             var objNew = { title: message[0].title, date: message[0].date, description: message[0].description, image: message[0].image, guests: message[0].guests, admin: connectedUser, inviteCode: message[0].inviteCode, picturesList: message[0].picturesList, status: message[0].status};
+             var objNew = { title: message[0].title, date: message[0].date, description: message[0].description, image: message[0].image, guests: [], admin: connectedUser, inviteCode: message[0].inviteCode, picturesList: [], status: message[0].status};
              db.collection("event").insertOne(objNew, null, function (error, results) {
                  if (error) throw error;
                  console.log("EVENT inséré");    
@@ -142,6 +142,22 @@ var connectedUser;
                 console.log('Deleted - ' + obj);
                 socket.emit("getEvent", [{error: obj.n, result: obj.ok, data: 0}]) 
              }))
+
+         }); 
+     })
+
+     //Ajouter des photos à l'évenement
+     socket.on("addPhotoEvent", message => {
+        MongoClient.connect("mongodb://localhost:27017/gameofcode", function(error, client) {
+            if (error) return funcCallback(error);
+             console.log("Connecté à la base de données"); 
+             var db = client.db('ptutdb');
+  
+             db.collection("event").updateOne(
+                {_id: new ObjectID("5ccade3624f3652fcfb679e1")},{$push: {picturesList: message[0].imageB64}}) 
+
+                socket.emit("getEvent", [{error: obj.n, result: obj.ok, data: 0}]) 
+             })
 
          }); 
      })
