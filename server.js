@@ -155,8 +155,8 @@ var connectedUser;
              var db = client.db('ptutdb');
 
              db.collection("event").updateOne(
-                {_id : message[0].idEvent},
-                { $push: { "guests.0.login": connectedUser.login }}
+                {_id : new ObjectID(message[0].idEvent)},
+                { $push: { guests: connectedUser }}
               );
      })
 
