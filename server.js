@@ -129,6 +129,23 @@ var connectedUser;
          }); 
      })
 
+     socket.on("deleteEvent", message => {
+        console.log("on event deleted: " + JSON.stringify(message))
+        MongoClient.connect("mongodb://localhost:27017/gameofcode", function(error, client) {
+            if (error) return funcCallback(error);
+             console.log("Connecté à la base de données"); 
+             var db = client.db('ptutdb');
+  
+             db.collection("event").remove( 
+                 { _id: new ObjectID(message[0].idEvent) }
+             ).then((obj => {
+                console.log('Deleted - ' + obj);
+                socket.emit("getEvent", [{error: obj.n, result: obj.ok, data: 0}]) 
+             }))
+
+         }); 
+     })
+
  })
 
 
