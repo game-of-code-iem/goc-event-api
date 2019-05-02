@@ -154,15 +154,12 @@ var connectedUser;
              var db = client.db('ptutdb');
   
              db.collection("event").updateOne(
-                {_id: new ObjectID("5ccade3624f3652fcfb679e1")},{$push: {picturesList: message[0].imageB64}}) 
-
-                socket.emit("getEvent", [{error: obj.n, result: obj.ok, data: 0}]) 
-             })
+                {_id: new ObjectID(message[0].idEvent)},{$push: {picturesList: message[0].imageB64}})              })
 
          }); 
-     })
+})
 
- })
+ 
 
 
 http.listen("8080","localhost");
