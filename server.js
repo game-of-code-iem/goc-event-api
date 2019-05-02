@@ -26,11 +26,11 @@ var connectedUser;
             console.log("Connecté à la base de données");
             var db = client.db('ptutdb');
 
-            var objNew = { login: message[0].login, password: message[0].password, mail: message[0].mail};  
+            var objNew = { firstName: message[0].firstName, lastName: message[0].lastName, login: message[0].login, password: message[0].password, mail: message[0].mail};  
             db.collection("user").insertOne(objNew, null, function (error, results) {
                 if (error) throw error;
                 console.log("USER inséré");
-                socket.emit("register", [{error: 0, result: 1, data: 0}])   
+                socket.emit("register", [{error: 0, result: 1, data: 1}])   
             });
         });        
      })
@@ -44,19 +44,22 @@ var connectedUser;
            console.log("Connecté à la base de données");
            var db = client.db('ptutdb');
 
-           var userLogged = db.collection("user").findOne( { login: message[0].login, password: message[0].password } );
-            if ( userLogged ){
-                console.log("LOGIN DONE")
-                socket.emit("login", "ok") 
-            } else {
-                console.log("LOGIN FALSE")
-                socket.emit("login", "no") 
-            }
+            var userLogged = db.collection("user").findOne( { login: message[0].login, password: message[0].password }, (err, res) => {
+                if ( res ){
+                    console.log("LOGIN DONE")
+                    connectedUser = res;
+                    console.log("user logged : " + JSON.stringify(connectedUser))
+                    socket.emit("login", [{error: 0, result: 1, data: connectedUser}]) 
+                } else {
+                    console.log("LOGIN FALSE")
+                    socket.emit("login", [{error: 0, result: 1, data: 1}]) 
+                }
+            });
        });        
     })
 
      socket.on("addEvent", message => {
-         console.log("on event added: "+ message)
+         console.log("on event added: "+ JSON.stringify(message))
          MongoClient.connect("mongodb://localhost:27017/gameofcode", function(error, client) {
             if (error) return funcCallback(error);
              console.log("Connecté à la base de données"); 
@@ -75,16 +78,35 @@ var connectedUser;
 
 
             // Ajout de l'événement
-             var objNew = { name: message[0].name, date: message[0].date, description: message[0].description, urlMainPic: message[0].urlMainPic, guests: message[0].guests, admin: message[0].admin, inviteCode: message[0].inviteCode};
-             db.collection("event").insert(objNew, null, function (error, results) {
+             var objNew = { title: message[0].title, date: message[0].date, description: message[0].description, image: message[0].image, guests: message[0].guests, admin: connectedUser, inviteCode: message[0].inviteCode, picturesList: message[0].picturesList, status: message[0].status};
+             db.collection("event").insertOne(objNew, null, function (error, results) {
                  if (error) throw error;
                  console.log("EVENT inséré");    
              });
          }); 
      })
 
+     socket.on("getEvent", () => {
+        console.log("on get event: ")
+        MongoClient.connect("mongodb://localhost:27017/gameofcode", function(error, client) {
+            if (error) return funcCallback(error);
+             console.log("Connecté à la base de données"); 
+             var db = client.db('ptutdb');
+
+             var eventsList = db.collection("event").find({admin: connectedUser}).toArray((err,res)=>{
+                if (res.length > 0){
+                    console.log("eventsList found" + res)
+                    socket.emit("getEvent", [{error: 0, result: 1, data: res }])
+                } else {
+                    console.log("eventsList NOT found")
+                    socket.emit("getEvent", [{error: 1, result: 0, data: 0}]) 
+                }
+             })            
+             });           
+     })
+
      socket.on("updateEvent", message => {
-        console.log("on event updated: " + message)
+        console.log("on event updated: " + JSON.stringify(message))
         MongoClient.connect("mongodb://localhost:27017/gameofcode", function(error, client) {
             if (error) return funcCallback(error);
              console.log("Connecté à la base de données"); 
@@ -105,8 +127,7 @@ var connectedUser;
 
              } else {
                  console.log("eventToUpdate NOT found")
-             }
-              
+             }              
          }); 
      })
 
