@@ -41,8 +41,7 @@ let connectedUser;
                         let objNew = { firstName: jsonMessage.data.firstName, lastName: jsonMessage.data.lastName, password: hash, mail: jsonMessage.data.mail};  
                         db.collection("user").insertOne(objNew,(error, results) =>{
                             if (error) socket.emit("register/user", JSON.stringify({code:500,data:{message:error}}));
-                            socket.emit("register/user", JSON.stringify({code:201,data:{message:"Utilisateur inscrit",user:{id:results.insertedId,firstName: jsonMessage.data.firstName,
-                                 lastName: jsonMessage.data.lastName,mail: jsonMessage.data.mail}}}));   
+                            socket.emit("register/user", JSON.stringify({code:201,data:{message:"Utilisateur inscrit",user:{id:results.insertedId,firstName: jsonMessage.data.firstName,lastName: jsonMessage.data.lastName,mail: jsonMessage.data.mail}}}));   
                         });
                     })
                 }      
@@ -179,19 +178,23 @@ let connectedUser;
      })
      //a faire
      socket.on("join/event", message => {
-        console.log("on event joined: " + JSON.stringify(message))
 
         MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true}, (error, client)=> {
-            if (error) return funcCallback(error);
-             console.log("Connecté à la base de données"); 
-             let db = client.db('ptutdb');
+            if (error) socket.emit("join/event", JSON.stringify({code:500,data:{message:error}}));   
+            let db = client.db('ptutdb');
+            let jsonMessage = JSON.parse(message);   
 
              db.collection("event").updateOne(
-                {_id : message[0].idEvent},
-                { $push: { "guests.0.login": connectedUser.login }}
-              );
-        })
-     })
+                {_id : new ObjectID(jsonMessage.data.idEvent)},
+                { $push: { guests: jsonMessage.auth }}
+              ,(err,res) => {
+                if (err) socket.emit("join/event", JSON.stringify({code:500,data:{message:err}})); 
+                
+                socket.emit("join/event", JSON.stringify({code:200,data:{message:"Event Rejoint"}}));    
+
+              });
+     });
+    });
      
      //Ajouter des photos à l'évenement
      //a refaire
@@ -206,49 +209,56 @@ let connectedUser;
             {_id: new ObjectID(message[0].idEvent)},{$push: {picturesList: {image : message[0].imageB64,userId:message[0].userId}}})   
 
          }); 
-     })
+     });
 
      socket.on("like/post", message => {
         MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
           
      
-     })
+     });
+    });
 
      socket.on("comment/post", message => {
         MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
           
      
-     })
+     });
+    });
 
      socket.on("delete/post", message => {
         MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
           
      
-     })
+     });
+    });
 
      socket.on("unlike/post", message => {
         MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
           
      
-     })
+     });
+    });
 
      socket.on("uncoment/post", message => {
         MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
           
      
-     })
+     });
+    });
 
      socket.on("get/post", message => {
         MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
           
      
-     })
+     });
+    });
 
      socket.on("update/post", message => {
         MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
           
      
-     })
+     });
+    });
 
 
      //Deconnection 
