@@ -171,8 +171,13 @@ function broadcast(route, data) {
 }
 
 function emit(route, data, id) {
-    let socket = getSocket(id)
-    socket.emit(route, data)
+    try {
+        let socket = getSocket(id)
+        socket.emit(route, JSON.stringify(data))
+    } catch (error) {
+        console.log("Anomalie: Invalid JSON PARSING" + error)
+    }
+
 }
 
 module.exports = { init, emit, getSocket, broadcast }

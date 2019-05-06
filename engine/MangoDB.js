@@ -10,6 +10,10 @@ class MongoDBManager {
         })
     }
 
+    getCollection(name) {
+        return this.db.collection(name)
+    }
+
 }
 
 module.exports = {MongoDBManager} 
