@@ -4,6 +4,9 @@ const controller = require('./controller/controller');
 let MongoClient = require("mongodb").MongoClient;
 let ObjectID = require('mongodb').ObjectID;
 const bcrypt = require('bcrypt');
+const DB = "mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true"
+const port = "4545"
+const host = "192.168.43.47"
 
 
 const app = express();
@@ -23,7 +26,7 @@ let connectedUser;
      
      // INSCRIPTION
      socket.on("register/user",message => {
-         MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
+         MongoClient.connect(DB,{useNewUrlParser:true},(error, client) =>{
            if (error) socket.emit("register/user", JSON.stringify({code:500,data:{message:error}}));
             let db = client.db('ptutdb');
             //check si adresse mail unique
@@ -51,7 +54,7 @@ let connectedUser;
 
      // CONNEXION
      socket.on("login/user",message => {
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) => {
+        MongoClient.connect(DB,{useNewUrlParser:true},(error, client) => {
             if (error) socket.emit("login/user", JSON.stringify({code:500,data:{message:error}}));
             let db = client.db('ptutdb');
 
@@ -81,7 +84,7 @@ let connectedUser;
 
     // EVENEMENTS
      socket.on("add/event", message => {
-         MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true}, (error, client) =>{
+         MongoClient.connect(DB,{useNewUrlParser:true}, (error, client) =>{
             if (error) socket.emit("add/event", JSON.stringify({code:500,data:{message:error}}));   
              let db = client.db('ptutdb');
 
@@ -109,7 +112,7 @@ let connectedUser;
 
      socket.on("get/event", (message) => {
         
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true}, (error, client) =>{
+        MongoClient.connect(DB,{useNewUrlParser:true}, (error, client) =>{
             if (error) socket.emit("get/event", JSON.stringify({code:500,data:{message:error}}));   
             let db = client.db('ptutdb');
 
@@ -127,7 +130,7 @@ let connectedUser;
      //à refaire sprint 2
      socket.on("update/event", message => {
         console.log("on event updated: " + JSON.stringify(message))
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true}, (error, client) =>{
+        MongoClient.connect(DB,{useNewUrlParser:true}, (error, client) =>{
             if (error) return funcCallback(error);
              console.log("Connecté à la base de données"); 
              let db = client.db('ptutdb');
@@ -162,7 +165,7 @@ let connectedUser;
      //a refaire sprint 2
      socket.on("delete/event", message => {
         console.log("on event deleted: " + JSON.stringify(message))
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) => {
+        MongoClient.connect(DB,{useNewUrlParser:true},(error, client) => {
             if (error) return funcCallback(error);
              console.log("Connecté à la base de données"); 
              let db = client.db('ptutdb');
@@ -179,27 +182,35 @@ let connectedUser;
      //a faire
      socket.on("join/event", message => {
 
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true}, (error, client)=> {
+        MongoClient.connect(DB,{useNewUrlParser:true}, (error, client)=> {
             if (error) socket.emit("join/event", JSON.stringify({code:500,data:{message:error}}));   
             let db = client.db('ptutdb');
             let jsonMessage = JSON.parse(message);   
 
-             db.collection("event").updateOne(
-                {_id : new ObjectID(jsonMessage.data.idEvent)},
-                { $push: { guests: jsonMessage.auth }}
-              ,(err,res) => {
-                if (err) socket.emit("join/event", JSON.stringify({code:500,data:{message:err}})); 
-                
-                socket.emit("join/event", JSON.stringify({code:200,data:{message:"Event Rejoint"}}));    
-
-              });
+            //check if user is in event
+            db.collection("event").findOne({guests:jsonMessage.auth},(errorGuests, resultsGuests) =>{
+                if (errorGuests) socket.emit("join/event", JSON.stringify({code:500,data:{message:errorGuests}}));  
+                 
+                if(resultsGuests){
+                    socket.emit("join/event", JSON.stringify({code:403,data:{message:"Event déjà rejoint"}}));    
+                }else {
+                    db.collection("event").updateOne(
+                        {_id : new ObjectID(jsonMessage.data.idEvent)},
+                        { $push: { guests: jsonMessage.auth }}
+                      ,(err,res) => {
+                        if (err) socket.emit("join/event", JSON.stringify({code:500,data:{message:err}})); 
+                        
+                        socket.emit("join/event", JSON.stringify({code:200,data:{message:"Event Rejoint"}}));    
+        
+                      });
+                }
      });
     });
      
      //Ajouter des photos à l'évenement
      //a refaire
      socket.on("add/post", message => {
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
+        MongoClient.connect(DB,{useNewUrlParser:true},(error, client) =>{
             if (error) return funcCallback(error);
              console.log("Connecté à la base de données"); 
              let db = client.db('ptutdb');
@@ -212,49 +223,49 @@ let connectedUser;
      });
 
      socket.on("like/post", message => {
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
+        MongoClient.connect(DB,{useNewUrlParser:true},(error, client) =>{
           
      
      });
     });
 
      socket.on("comment/post", message => {
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
+        MongoClient.connect(DB,{useNewUrlParser:true},(error, client) =>{
           
      
      });
     });
 
      socket.on("delete/post", message => {
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
+        MongoClient.connect(DB,{useNewUrlParser:true},(error, client) =>{
           
      
      });
     });
 
      socket.on("unlike/post", message => {
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
+        MongoClient.connect(DB,{useNewUrlParser:true},(error, client) =>{
           
      
      });
     });
 
      socket.on("uncoment/post", message => {
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
+        MongoClient.connect(DB,{useNewUrlParser:true},(error, client) =>{
           
      
      });
     });
 
      socket.on("get/post", message => {
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
+        MongoClient.connect(DB,{useNewUrlParser:true},(error, client) =>{
           
      
      });
     });
 
      socket.on("update/post", message => {
-        MongoClient.connect("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true",{useNewUrlParser:true},(error, client) =>{
+        MongoClient.connect(DB,{useNewUrlParser:true},(error, client) =>{
           
      
      });
@@ -275,4 +286,4 @@ let connectedUser;
  
 
 
-http.listen("4545","192.168.43.47");
+http.listen(port,host);
