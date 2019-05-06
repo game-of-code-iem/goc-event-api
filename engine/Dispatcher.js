@@ -6,6 +6,7 @@ class Dispatcher {
     }
     
     add(key,call) {
+        
         this.dispatcher.set(key,call)
     }
 
@@ -13,11 +14,10 @@ class Dispatcher {
         this.dispatcher = new Map()
     }
 
-    dispatch(key,data) {
-        this.dispatcher.get(key)(data)
+    dispatch(key,data,id) {
+        this.dispatcher.get(key)(data,id)
     }
 }
 
-const DispatcherSingleton = new Dispatcher()
 
-export default DispatcherSingleton
+module.exports = {Dispatcher} 
