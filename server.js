@@ -374,8 +374,86 @@ io.on("connection", (socket) => {
     });
 });
 
+const Dispatcher = require("./engine/Dispatcher")
+const SocketManager = require("./engine/Socket")
+
+SocketManager.init(http)
+
+Dispatcher.add("register/user",registerUser)
+Dispatcher.add("login/user",loginUser)
+Dispatcher.add("add/event",addEvent)
+Dispatcher.add("get/myEvent",getMyEvent)
+Dispatcher.add("update/event",updateEvent)
+Dispatcher.add("get/joinedEvent",getJoinedEvent)
+Dispatcher.add("join/event",joinEvent)
+Dispatcher.add("delete/event",deleteEvent)
+Dispatcher.add("add/post",addPost)
+Dispatcher.add("like/post",likePost)
+Dispatcher.add("comment/post",commentPost)
+Dispatcher.add("delete/post",deletePost)
+Dispatcher.add("unlike/post",unlikePost)
+Dispatcher.add("uncomment/post",unCommentPost)
+Dispatcher.add("get/post",getPost)
+
+function registerUser(data,id) {
+    
+}
+
+function loginUser(data,id) {
+
+}
+
+function addEvent(data,id) {
+
+}
+
+function getMyEvent(data,id) {
+
+}
+
+function updateEvent(data,id) {
+
+}
+
+function getJoinedEvent(data,id) {
+
+}
+
+function deleteEvent(data,id) {
+
+}
+
+function joinEvent(data,id) {
+
+}
+
+function addPost(data,id) {
+
+}
+
+function likePost(data,id) {
+
+}
+
+function commentPost(data,id) {
+
+}
+
+function deletePost(data,id) {
+
+}
+
+function unlikePost(data,id) {
+
+}
+
+function unCommentPost(data,id) {
+
+}
+
+function getPost(data,id) {
+
+}
 
 
-
-
-    http.listen(port, host);
+http.listen(port, host);
