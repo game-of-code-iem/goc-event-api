@@ -6,7 +6,7 @@ let ObjectID = require('mongodb').ObjectID;
 const bcrypt = require('bcrypt');
 const DB = "mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true"
 const port = "4545"
-const host = "192.168.43.47"
+const host = "192.168.43.233"
 
 
 const app = express();
@@ -375,29 +375,32 @@ io.on("connection", (socket) => {
     });
 });
 
-const Dispatcher = require("./engine/Dispatcher")
+const {Dispatcher} = require("./engine/Dispatcher")
+let dispatcher = new Dispatcher()
 const SocketManager = require("./engine/Socket")
 
-SocketManager.init(http)
 
-Dispatcher.add("register/user",registerUser)
-Dispatcher.add("login/user",loginUser)
-Dispatcher.add("add/event",addEvent)
-Dispatcher.add("get/myEvent",getMyEvent)
-Dispatcher.add("update/event",updateEvent)
-Dispatcher.add("get/joinedEvent",getJoinedEvent)
-Dispatcher.add("join/event",joinEvent)
-Dispatcher.add("delete/event",deleteEvent)
-Dispatcher.add("add/post",addPost)
-Dispatcher.add("like/post",likePost)
-Dispatcher.add("comment/post",commentPost)
-Dispatcher.add("delete/post",deletePost)
-Dispatcher.add("unlike/post",unlikePost)
-Dispatcher.add("uncomment/post",unCommentPost)
-Dispatcher.add("get/post",getPost)
+
+dispatcher.add("register/user",registerUser)
+dispatcher.add("login/user",loginUser)
+dispatcher.add("add/event",addEvent)
+dispatcher.add("get/myEvent",getMyEvent)
+dispatcher.add("update/event",updateEvent)
+dispatcher.add("get/joinedEvent",getJoinedEvent)
+dispatcher.add("join/event",joinEvent)
+dispatcher.add("delete/event",deleteEvent)
+dispatcher.add("add/post",addPost)
+dispatcher.add("like/post",likePost)
+dispatcher.add("comment/post",commentPost)
+dispatcher.add("delete/post",deletePost)
+dispatcher.add("unlike/post",unlikePost)
+dispatcher.add("uncomment/post",unCommentPost)
+dispatcher.add("get/post",getPost)
+
+SocketManager.init(dispatcher,http)
 
 function registerUser(data,id) {
-    
+    SocketManager.emit("register/user",{},id)
 }
 
 function loginUser(data,id) {
