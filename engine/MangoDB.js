@@ -14,6 +14,15 @@ class MongoDBManager {
         return this.db.collection(name)
     }
 
+    getEvent() {
+        return this.db.collection("event")
+    }
+
+    getUser() {
+        return this.db.collection("user")
+    }
+
+
 }
 
 module.exports = {MongoDBManager} 

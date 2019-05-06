@@ -31,7 +31,7 @@ SocketManager.init(dispatcher, http)
 
 function registerUser(message, id) {
     let uniqueMailAdressQuery = { mail: message.data.mail }
-    mongoDB.getCollection("user").findOne(uniqueMailAdressQuery, (error, results) => {
+    mongoDB.getUser().findOne(uniqueMailAdressQuery, (error, results) => {
         if (error) {
             SocketManager.emit("register/user", { code: 500, data: { message: error }}, id)
         } else if (results) {
@@ -40,7 +40,7 @@ function registerUser(message, id) {
             let passwordToHash = message.data.password;
             bcrypt.hash(passwordToHash, 10).then(hash => {
                 let objNew = { firstName: message.data.firstName, lastName: message.data.lastName, password: hash, mail: message.data.mail };
-                mongoDB.getCollection("user").insertOne(objNew, (error, results) => {
+                mongoDB.getUser().insertOne(objNew, (error, results) => {
                     if (error) {
                         SocketManager.emit("register/user", {
                             code: 500, 
@@ -69,7 +69,7 @@ function registerUser(message, id) {
 }
 
 function loginUser(message,id) {
-    mongoDB.getCollection('user').findOne({ mail: message.data.mail }, (err, result) => {
+    mongoDB.getUser().findOne({ mail: message.data.mail }, (err, result) => {
         if (result) {
             bcrypt.compare(message.data.password, result.password).then(res => {
                 if (res) {
@@ -95,7 +95,7 @@ function loginUser(message,id) {
 }
 
 function addEvent(message, id) {
-    mongoDB.getCollection("event").findOne({inviteCode: message.data.inviteCode},(errorInvCode, resultsInvCode) => {
+    mongoDB.getEvent().findOne({inviteCode: message.data.inviteCode},(errorInvCode, resultsInvCode) => {
         if (errorInvCode) {
             SocketManager.emit("add/event",{code:500,data:{message: errorInvCode}},id);
         } else if (resultsInvCode) {
@@ -113,7 +113,7 @@ function addEvent(message, id) {
                 status: message.data.status, 
                 commentEventList: []
             };
-            mongoDB.getCollection("event").insertOne(objNew, (error, results) => {
+            mongoDB.getEvent().insertOne(objNew, (error, results) => {
                 if (error) {
                     SocketManager.emit("add/event", { code: 500, data: { message: error } }, id);
                 } else {
@@ -126,7 +126,7 @@ function addEvent(message, id) {
 }
 
 function getEvent(message, id) {
-    mongoDB.getCollection("event").find({ $or: [{ admin: message.auth }, { guests: message.auth }] }).toArray((err, res) => {
+    mongoDB.getEvent().find({ $or: [{ admin: message.auth }, { guests: message.auth }] }).toArray((err, res) => {
         if (err) {
             SocketManager.emit("get/event", { code: 500, data: { message: err } }, id);
         } else {
@@ -137,7 +137,7 @@ function getEvent(message, id) {
 }
 
 function getMyEvent(message, id) {
-    mongoDB.getCollection("event").find({ admin: message.auth }).toArray((err, res) => {
+    mongoDB.getEvent().find({ admin: message.auth }).toArray((err, res) => {
         if (err) {
             SocketManager.emit("get/MyEvent", { code: 500, data: { message: err } }, id);
         } else {
@@ -147,11 +147,11 @@ function getMyEvent(message, id) {
 }
 
 function updateEvent(message, id) {
-    mongoDB.getCollection("event").findOne({ _id: message.auth }, (err, res) => {
+    mongoDB.getEvent().findOne({ _id: message.auth }, (err, res) => {
         if (err) {
             SocketManager.emit("update/event", { code: 500, data: { message: err } }, id);
         } else if (res) {
-            mongoDB.getCollection("event").updateOne({ _id: new ObjectID(message.auth) },
+            mongoDB.getEvent().updateOne({ _id: new ObjectID(message.auth) },
                 {
                     $set: {
                         title: message.data.title,
@@ -173,7 +173,7 @@ function updateEvent(message, id) {
 }
 
 function getJoinedEvent(message, id) {
-    mongoDB.getCollection("event").find({ guests: message.auth }).toArray((err, res) => {
+    mongoDB.getEvent().find({ guests: message.auth }).toArray((err, res) => {
         if (err) {
             SocketManager.emit("get/joinedEvent", { code: 500, data: { message: err } }, id);
         } else {
@@ -183,7 +183,7 @@ function getJoinedEvent(message, id) {
 }
 
 function deleteEvent(message, id) {
-    mongoDB.getCollection("event").deleteOne(
+    mongoDB.getEvent().deleteOne(
         { _id: new ObjectID(message.auth) }, (err, res) => {
             if (err) {
                 SocketManager.emit("delete/event", { code: 500, data: { message: err } }, id);
@@ -193,14 +193,14 @@ function deleteEvent(message, id) {
         })
 }
 function joinEvent(message, id) {
-    mongoDB.getCollection("event").findOne({ guests: message.auth }, (errorGuests, resultsGuests) => {
+    mongoDB.getEvent().findOne({ guests: message.auth }, (errorGuests, resultsGuests) => {
         if (errorGuests) {
             SocketManager.emit("join/event", { code: 500, data: { message: errorGuests } }, id);
         }
         if (resultsGuests) {
             SocketManager.emit("join/event", { code: 403, data: { message: "Event déjà rejoint" } }, id);
         } else {
-            mongoDB.getCollection("event").updateOne({inviteCode: message.data.inviteCode},{$push:{ guests: message.auth}}, (err, res) => {
+            mongoDB.getEvent().updateOne({inviteCode: message.data.inviteCode},{$push:{ guests: message.auth}}, (err, res) => {
                 if (err) SocketManager.emit("join/event", { code: 500, data: { message: err } }, id);
                     SocketManager.emit("join/event", { code: 200, data: { message: "Event Rejoint" } }, id);
             });
@@ -209,7 +209,7 @@ function joinEvent(message, id) {
 }
 
 function addPost(message, id) {
-    mongoDB.getCollection("event").updateOne(
+    mongoDB.getEvent().updateOne(
         { _id: new ObjectID(message.auth) }, {
             $push: {
                 picturesList: {
@@ -227,13 +227,13 @@ function addPost(message, id) {
 }
 
 function likePost(message, id) {
-    mongoDB.getCollection('event').findOne({ _id: new ObjectID(message.auth), 'picturesList.likeList': { idUser: message.data.idUser, liked: true } }, (errFind, resFind) => {
+    mongoDB.getEvent().findOne({ _id: new ObjectID(message.auth), 'picturesList.likeList': { idUser: message.data.idUser, liked: true } }, (errFind, resFind) => {
         if (errFind) {
             SocketManager.emit("like/post", { code: 500, data: { message: errFind } }, id);
         } else if (resFind) {
             SocketManager.emit("like/post", { code: 403, data: { message: "Event déjà like" } }, id);
         } else {
-            mongoDB.getCollection('event').updateOne({ _id: new ObjectID(message.auth) }, {
+            mongoDB.getEvent().updateOne({ _id: new ObjectID(message.auth) }, {
                 $push: {
                     'picturesList.likeList': {
                         idUser: message.data.idUser,
