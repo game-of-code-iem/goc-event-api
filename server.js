@@ -34,8 +34,11 @@ io.on("connection", (socket) => {
             db.collection("user").findOne(uniqueMailAdressQuery, (error, results) => {
                 if (error){
                     socket.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }));
+                    console.log(error)
                 } else if (results) {
                     socket.emit("register/user", JSON.stringify({ code: 403, data: { message: "Adresse mail déja utilisé" } }));
+                    console.log(jsonMessage)
+
                 } else {
                     //adresse mail non utilise
                     let passwordToHash = jsonMessage.data.password;
@@ -47,6 +50,8 @@ io.on("connection", (socket) => {
                                 socket.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }));
                             } else {
                                 socket.emit("register/user", JSON.stringify({ code: 201, data: { message: "Utilisateur inscrit", user: { id: results.insertedId, firstName: jsonMessage.data.firstName, lastName: jsonMessage.data.lastName, mail: jsonMessage.data.mail } } }));
+                                console.log(jsonMessage)
+
                             }
                         });
                     })
@@ -108,6 +113,8 @@ io.on("connection", (socket) => {
                         socket.emit("add/event", JSON.stringify({ code: 500, data: { message: errorInvCode } }));
                     } else if (resultsInvCode) {
                         socket.emit("add/event", JSON.stringify({ code: 403, data: { message: "Code d'invitation non unique" } }));
+                        console.log(jsonMessage)
+
                     } else {
                         // Ajout de l'événement
                         let objNew = { title: jsonMessage.data.title, date: jsonMessage.data.date, description: jsonMessage.data.description, image: jsonMessage.data.image, guests: [], admin: jsonMessage.auth, inviteCode: jsonMessage.data.inviteCode, picturesList: [], status: jsonMessage.data.status 
@@ -116,6 +123,7 @@ io.on("connection", (socket) => {
                             if (error) {
                                 socket.emit("add/event", JSON.stringify({ code: 500, data: { message: error } }));
                             } else {
+                                console.log(jsonMessage)
                                 socket.emit("add/event", JSON.stringify({ code: 200, data: { message: "Event crée" } }));
                             }
                         });
@@ -140,6 +148,8 @@ io.on("connection", (socket) => {
                         socket.emit("get/event", JSON.stringify({ code: 500, data: { message: err } }));
                     } else {
                         socket.emit("get/event", JSON.stringify({ code: 200, data: res }));
+                        console.log(jsonMessage)
+
                     }
                 })
             }
@@ -161,6 +171,8 @@ io.on("connection", (socket) => {
                         socket.emit("get/MyEvent", JSON.stringify({ code: 500, data: { message: err } }));
                     } else {
                         socket.emit("get/MyEvent", JSON.stringify({ code: 200, data: res }));
+                        console.log(jsonMessage)
+
                     }
                 })
             }
@@ -182,6 +194,7 @@ io.on("connection", (socket) => {
                         socket.emit("get/joinedEvent", JSON.stringify({ code: 500, data: { message: err } }));
                     } else {
                         socket.emit("get/joinedEvent", JSON.stringify({ code: 200, data: res }));
+                        console.log(jsonMessage)
                     }
                 })
             }
@@ -217,6 +230,8 @@ io.on("connection", (socket) => {
                                     socket.emit("update/event", JSON.stringify({ code: 500, data: { message: errUpdate } }));
                                 } else {
                                     socket.emit("update/event", JSON.stringify({ code: 200, data: res }));
+                                    console.log(jsonMessage)
+
                                 }      
                             })
                     }
@@ -243,6 +258,8 @@ io.on("connection", (socket) => {
                         socket.emit("delete/event", JSON.stringify({ code: 500, data: { message: err } }));
                     } else {
                         socket.emit("delete/event", JSON.stringify({ code: 200, data: { message: "Event supprimer" } }));
+                        console.log(jsonMessage)
+
                     }
                 })
             }
