@@ -2,81 +2,160 @@ let io
 let sockets = new Map()
 let Dispatcher
 
-function init(dispatcher,http) {
+function init(dispatcher, http) {
     Dispatcher = dispatcher
     io = require('socket.io')(http, { origins: '*:*' });
     io.on("connection", socket => {
 
-        //Dico des sockets
-        socket.emit("status",202)
-        sockets.set(socket.id,socket)
+        //socket.emit("status", 202)
+        sockets.set(socket.id, socket)
 
         socket.on("register/user", data => {
-            Dispatcher.dispatch("register/user", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("register/user", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-        
+
         socket.on("login/user", data => {
-            Dispatcher.dispatch("login/user", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("login/user", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-    
+
         socket.on("add/event", data => {
-            Dispatcher.dispatch("add/event", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("add/event", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-    
+
         socket.on("get/event", data => {
-            Dispatcher.dispatch("get/event", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("get/event", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-    
+
         socket.on("get/MyEvent", data => {
-            Dispatcher.dispatch("get/myEvent", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("get/myEvent", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-    
+
         socket.on("update/event", data => {
-            Dispatcher.dispatch("update/event", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("update/event", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-    
+
         socket.on("get/joinedEvent", data => {
-            Dispatcher.dispatch("get/joinedEvent", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("get/joinedEvent", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-    
+
         socket.on("delete/event", data => {
-            Dispatcher.dispatch("delete/event", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("delete/event", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-        
+
         socket.on("join/event", data => {
-            Dispatcher.dispatch("join/event", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("join/event", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-    
+
         socket.on("add/post", data => {
-            Dispatcher.dispatch("add/post", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("add/post", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-    
+
         socket.on("like/post", data => {
-            Dispatcher.dispatch("like/post", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("like/post", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-        
+
         socket.on("comment/post", data => {
-            Dispatcher.dispatch("comment/post", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("comment/post", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-    
+
         socket.on("delete/post", data => {
-            Dispatcher.dispatch("delete/post", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("delete/post", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-    
+
         socket.on("unlike/post", data => {
-            Dispatcher.dispatch("unlike/post", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("unlike/post", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-    
+
         socket.on("uncomment/post", data => {
-            Dispatcher.dispatch("uncomment/post", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("uncomment/post", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-        
+
         socket.on("get/post", data => {
-            Dispatcher.dispatch("get/post", data,socket.id)
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("get/post", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
         })
-    
+
         socket.on("disconnect", reason => {
-            //socket.close()
+            console.log(reason)
             sockets.delete(socket.id)
             console.log("Disconnected: " + reason)
         })
@@ -87,8 +166,8 @@ function getSocket(id) {
     return sockets.get(id)
 }
 
-function broadcast(route,data) {
-    io.broadcast(route,data)
+function broadcast(route, data) {
+    io.broadcast(route, data)
 }
 
 function emit(route, data, id) {
@@ -96,4 +175,4 @@ function emit(route, data, id) {
     socket.emit(route, data)
 }
 
-module.exports = { init, emit, getSocket, broadcast}
+module.exports = { init, emit, getSocket, broadcast }

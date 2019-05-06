@@ -1,6 +1,4 @@
-
 let MongoClient = require("mongodb").MongoClient;
-
 class MongoDBManager {
 
     constructor(url) {

@@ -14,9 +14,6 @@ class Dispatcher {
     }
 
     dispatch(key,data,id) {
-        console.log(this.dispatcher)
-        console.log(key)
-
         this.dispatcher.get(key)(data,id)
     }
 }
