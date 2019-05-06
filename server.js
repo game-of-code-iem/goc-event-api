@@ -302,31 +302,30 @@ io.on("connection", (socket) => {
         socket.on("like/post", message => {
             MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
                 if (error){
-                    socket.emit("like/post", JSON.stringify({ code: 500, data: { message: err } }));
+                    socket.emit("like/post", JSON.stringify({ code: 500, data: { message: error } }));
                 } else {
                     let db = client.db('ptutdb');
                     let jsonMessage = JSON.parse(message);
                     //check if photo is already liked by user
-                    db.collection('event').findOne({_id: new ObjectID(jsonMessage.auth),'picturesList.likeList': {idUser:jsonMessage.data.idUser}},(errFind,resFind)=>{
+                    db.collection('event').findOne({_id: new ObjectID(jsonMessage.auth),'picturesList.likeList': {idUser:jsonMessage.data.idUser, liked:true}},(errFind,resFind)=>{
                         if(errFind){
                             socket.emit("like/post", JSON.stringify({ code: 500, data: { message: errFind } }));
                         }else if (resFind) {
-                            
-                        }
-                    })
-
-                    //todo
-
-                    db.collection('event').updateOne({_id: new ObjectID(jsonMessage.auth)}, {$push: {'picturesList.likeList': {idUser:jsonMessage.data.idUser,
-                    liked: true}}},(err,res)=>{
-                        if(err){
-                            socket.emit("like/post", JSON.stringify({ code: 500, data: { message: err } }));
+                            //like 
+                            socket.emit("like/post",JSON.stringify({ code: 403, data: { message: "Event déjà like" } }));
                         } else {
-                            //todo broadcast
+                            //ajout like
+                            db.collection('event').updateOne({_id: new ObjectID(jsonMessage.auth)}, {$push: {'picturesList.likeList': {idUser:jsonMessage.data.idUser,
+                                liked: true}}},(err,res)=>{
+                                    if(err){
+                                        socket.emit("like/post", JSON.stringify({ code: 500, data: { message: err } }));
+                                    } else {
+                                        //todo broadcast
+                                    }
+                                })
                         }
                     })
                 }
-
             });
         });
 
