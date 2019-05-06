@@ -209,7 +209,7 @@ function joinEvent(message, id) {
 }
 
 function addPost(message, id) {
-    getCollection("event").updateOne(
+    mongoDB.getCollection("event").updateOne(
         { _id: new ObjectID(message.auth) }, {
             $push: {
                 picturesList: {
@@ -227,13 +227,13 @@ function addPost(message, id) {
 }
 
 function likePost(message, id) {
-    getCollection('event').findOne({ _id: new ObjectID(message.auth), 'picturesList.likeList': { idUser: message.data.idUser, liked: true } }, (errFind, resFind) => {
+    mongoDB.getCollection('event').findOne({ _id: new ObjectID(message.auth), 'picturesList.likeList': { idUser: message.data.idUser, liked: true } }, (errFind, resFind) => {
         if (errFind) {
             SocketManager.emit("like/post", { code: 500, data: { message: errFind } }, id);
         } else if (resFind) {
             SocketManager.emit("like/post", { code: 403, data: { message: "Event déjà like" } }, id);
         } else {
-            getCollection('event').updateOne({ _id: new ObjectID(message.auth) }, {
+            mongoDB.getCollection('event').updateOne({ _id: new ObjectID(message.auth) }, {
                 $push: {
                     'picturesList.likeList': {
                         idUser: message.data.idUser,
