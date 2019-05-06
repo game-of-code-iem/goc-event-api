@@ -6,7 +6,7 @@ let ObjectID = require('mongodb').ObjectID;
 const bcrypt = require('bcrypt');
 const DB = "mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true"
 const port = "4545"
-const host = "192.168.43.233"
+const host = "192.168.43.47"
 
 
 const app = express();
@@ -16,85 +16,21 @@ const app = express();
 //app.use(cors({credentials: true, origin: true}))
 
 let http = require("http").createServer(app);
-const io = require('socket.io')(http, { origins: '*:*' });
+//const io = require('socket.io')(http, { origins: '*:*' });
 
 // CONTROLLER = controller
-io.on("connection", (socket) => {
+/*io.on("connection", (socket) => {
     console.log("on connection")
     socket.emit("status", 202);
 
     // INSCRIPTION
-    socket.on("register/user", message => {
-        MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error) socket.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }));
-            let db = client.db('ptutdb');
-            //check si adresse mail unique
-            let jsonMessage = JSON.parse(message);
-            let uniqueMailAdressQuery = { mail: jsonMessage.data.mail }
-            db.collection("user").findOne(uniqueMailAdressQuery, (error, results) => {
-                if (error){
-                    socket.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }));
-                    console.log(error)
-                } else if (results) {
-                    socket.emit("register/user", JSON.stringify({ code: 403, data: { message: "Adresse mail déja utilisé" } }));
-                    console.log(jsonMessage)
-
-                } else {
-                    //adresse mail non utilise
-                    let passwordToHash = jsonMessage.data.password;
-                    bcrypt.hash(passwordToHash, 10).then(hash => {
-                        // Store hash in your password DB.
-                        let objNew = { firstName: jsonMessage.data.firstName, lastName: jsonMessage.data.lastName, password: hash, mail: jsonMessage.data.mail };
-                        db.collection("user").insertOne(objNew, (error, results) => {
-                            if (error){
-                                socket.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }));
-                            } else {
-                                socket.emit("register/user", JSON.stringify({ code: 201, data: { message: "Utilisateur inscrit", user: { id: results.insertedId, firstName: jsonMessage.data.firstName, lastName: jsonMessage.data.lastName, mail: jsonMessage.data.mail } } }));
-                                console.log(jsonMessage)
-
-                            }
-                        });
-                    })
-                }
-            });
-        });
-    })
+    /*socket.on("register/user", message => {
+       
+    })*/
 
     // CONNEXION
-    socket.on("login/user", message => {
-        MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error){
-                socket.emit("login/user", JSON.stringify({ code: 500, data: { message: error } }));
-            } else {
-                let db = client.db('ptutdb');
-
-                let jsonMessage = JSON.parse(message);
-                // Load hash from your password DB.
-                db.collection('user').findOne({ mail: jsonMessage.data.mail }, (err, result) => {
-                    //adresse mail trouver
-                    if (result) {
-                        //password here
-                        bcrypt.compare(jsonMessage.data.password, result.password).then(res => {
-                            //password match
-                            if (res) {
-                                socket.emit("login/user", JSON.stringify({
-                                    code: 200, data: {
-                                        message: "Utilisateur connecté", user: {
-                                            userId: result._id, firstName: result.firstName, lastName: result.lastName,
-                                            mail: result.mail
-                                        }
-                                    }
-                                }));
-                            } else {
-                                socket.emit("login/user", JSON.stringify({ code: 403, data: { message: "Mot de passe incorrecte" } }));
-                            }
-                        })
-                    } else {
-                        socket.emit("login/user", JSON.stringify({ code: 403, data: { message: "Adresse mail inconnue" } }));
-                    }
-                });
-            }
-        })
+    /*socket.on("login/user", message => {
+        
     });
 
 
@@ -389,7 +325,7 @@ io.on("connection", (socket) => {
         });
 
     });
-});
+});*/
 
 const {Dispatcher} = require("./engine/Dispatcher")
 let dispatcher = new Dispatcher()
@@ -400,6 +336,7 @@ const SocketManager = require("./engine/Socket")
 dispatcher.add("register/user",registerUser)
 dispatcher.add("login/user",loginUser)
 dispatcher.add("add/event",addEvent)
+dispatcher.add("get/event",getEvent)
 dispatcher.add("get/myEvent",getMyEvent)
 dispatcher.add("update/event",updateEvent)
 dispatcher.add("get/joinedEvent",getJoinedEvent)
@@ -415,16 +352,85 @@ dispatcher.add("get/post",getPost)
 
 SocketManager.init(dispatcher,http)
 
-function registerUser(data,id) {
-    SocketManager.emit("register/user",{},id)
+function registerUser(message,id) {
+    MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
+        if (error) socket.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }));
+        let db = client.db('ptutdb');
+        //check si adresse mail unique
+        let jsonMessage = JSON.parse(message);
+        let uniqueMailAdressQuery = { mail: jsonMessage.data.mail }
+        db.collection("user").findOne(uniqueMailAdressQuery, (error, results) => {
+            if (error){
+                SocketManager.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }),id);
+                console.log(error)
+            } else if (results) {
+                SocketManager.emit("register/user", JSON.stringify({ code: 403, data: { message: "Adresse mail déja utilisé" } }),id);
+                console.log(jsonMessage)
+
+            } else {
+                //adresse mail non utilise
+                let passwordToHash = jsonMessage.data.password;
+                bcrypt.hash(passwordToHash, 10).then(hash => {
+                    // Store hash in your password DB.
+                    let objNew = { firstName: jsonMessage.data.firstName, lastName: jsonMessage.data.lastName, password: hash, mail: jsonMessage.data.mail };
+                    db.collection("user").insertOne(objNew, (error, results) => {
+                        if (error){
+                            SocketManager.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }),id);
+                        } else {
+                            SocketManager.emit("register/user", JSON.stringify({ code: 201, data: { message: "Utilisateur inscrit", user: { id: results.insertedId, firstName: jsonMessage.data.firstName, lastName: jsonMessage.data.lastName, mail: jsonMessage.data.mail } } }),id);
+                            console.log(jsonMessage)
+
+                        }
+                    });
+                })
+            }
+        });
+    });
+    
 }
 
-function loginUser(data,id) {
+function loginUser(message,id) {
+    MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
+        if (error){
+            SocketManager.emit("login/user", JSON.stringify({ code: 500, data: { message: error } }),id);
+        } else {
+            let db = client.db('ptutdb');
 
+            let jsonMessage = JSON.parse(message);
+            // Load hash from your password DB.
+            db.collection('user').findOne({ mail: jsonMessage.data.mail }, (err, result) => {
+                //adresse mail trouver
+                if (result) {
+                    //password here
+                    bcrypt.compare(jsonMessage.data.password, result.password).then(res => {
+                        //password match
+                        if (res) {
+                            SocketManager.emit("login/user", JSON.stringify({
+                                code: 200, data: {
+                                    message: "Utilisateur connecté", user: {
+                                        userId: result._id, firstName: result.firstName, lastName: result.lastName,
+                                        mail: result.mail
+                                    }
+                                }
+                            }),id);
+                        } else {
+                            SocketManager.emit("login/user", JSON.stringify({ code: 403, data: { message: "Mot de passe incorrecte" } }),id);
+                        }
+                    })
+                } else {
+                    SocketManager.emit("login/user", JSON.stringify({ code: 403, data: { message: "Adresse mail inconnue" } }),id);
+                }
+            });
+        }
+    })
 }
 
 function addEvent(data,id) {
 
+}
+
+function getEvent(data,id) {
+    
 }
 
 function getMyEvent(data,id) {
