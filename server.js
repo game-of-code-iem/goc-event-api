@@ -17,7 +17,6 @@ const app = express();
 
 let http = require("http").createServer(app);
 const io = require('socket.io')(http, { origins: '*:*' });
-let connectedUser;
 
 // CONTROLLER = controller
 io.on("connection", (socket) => {
@@ -33,8 +32,9 @@ io.on("connection", (socket) => {
             let jsonMessage = JSON.parse(message);
             let uniqueMailAdressQuery = { mail: jsonMessage.data.mail }
             db.collection("user").findOne(uniqueMailAdressQuery, (error, results) => {
-                if (error) socket.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }));
-                if (results) {
+                if (error){
+                    socket.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }));
+                } else if (results) {
                     socket.emit("register/user", JSON.stringify({ code: 403, data: { message: "Adresse mail déja utilisé" } }));
                 } else {
                     //adresse mail non utilise
@@ -43,8 +43,11 @@ io.on("connection", (socket) => {
                         // Store hash in your password DB.
                         let objNew = { firstName: jsonMessage.data.firstName, lastName: jsonMessage.data.lastName, password: hash, mail: jsonMessage.data.mail };
                         db.collection("user").insertOne(objNew, (error, results) => {
-                            if (error) socket.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }));
-                            socket.emit("register/user", JSON.stringify({ code: 201, data: { message: "Utilisateur inscrit", user: { id: results.insertedId, firstName: jsonMessage.data.firstName, lastName: jsonMessage.data.lastName, mail: jsonMessage.data.mail } } }));
+                            if (error){
+                                socket.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }));
+                            } else {
+                                socket.emit("register/user", JSON.stringify({ code: 201, data: { message: "Utilisateur inscrit", user: { id: results.insertedId, firstName: jsonMessage.data.firstName, lastName: jsonMessage.data.lastName, mail: jsonMessage.data.mail } } }));
+                            }
                         });
                     })
                 }
@@ -55,35 +58,37 @@ io.on("connection", (socket) => {
     // CONNEXION
     socket.on("login/user", message => {
         MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error) socket.emit("login/user", JSON.stringify({ code: 500, data: { message: error } }));
-            let db = client.db('ptutdb');
+            if (error){
+                socket.emit("login/user", JSON.stringify({ code: 500, data: { message: error } }));
+            } else {
+                let db = client.db('ptutdb');
 
-            let jsonMessage = JSON.parse(message);
-            console.log(jsonMessage)
-            // Load hash from your password DB.
-            db.collection('user').findOne({ mail: jsonMessage.data.mail }, (err, result) => {
-                //adresse mail trouver
-                if (result) {
-                    //password here
-                    bcrypt.compare(jsonMessage.data.password, result.password).then(res => {
-                        //password match
-                        if (res) {
-                            socket.emit("login/user", JSON.stringify({
-                                code: 200, data: {
-                                    message: "Utilisateur connecté", user: {
-                                        userId: result._id, firstName: result.firstName, lastName: result.lastName,
-                                        mail: result.mail
+                let jsonMessage = JSON.parse(message);
+                // Load hash from your password DB.
+                db.collection('user').findOne({ mail: jsonMessage.data.mail }, (err, result) => {
+                    //adresse mail trouver
+                    if (result) {
+                        //password here
+                        bcrypt.compare(jsonMessage.data.password, result.password).then(res => {
+                            //password match
+                            if (res) {
+                                socket.emit("login/user", JSON.stringify({
+                                    code: 200, data: {
+                                        message: "Utilisateur connecté", user: {
+                                            userId: result._id, firstName: result.firstName, lastName: result.lastName,
+                                            mail: result.mail
+                                        }
                                     }
-                                }
-                            }));
-                        } else {
-                            socket.emit("login/user", JSON.stringify({ code: 403, data: { message: "Mot de passe incorrecte" } }));
-                        }
-                    })
-                } else {
-                    socket.emit("login/user", JSON.stringify({ code: 403, data: { message: "Adresse mail inconnue" } }));
-                }
-            });
+                                }));
+                            } else {
+                                socket.emit("login/user", JSON.stringify({ code: 403, data: { message: "Mot de passe incorrecte" } }));
+                            }
+                        })
+                    } else {
+                        socket.emit("login/user", JSON.stringify({ code: 403, data: { message: "Adresse mail inconnue" } }));
+                    }
+                });
+            }
         })
     });
 
@@ -91,93 +96,156 @@ io.on("connection", (socket) => {
     // EVENEMENTS
     socket.on("add/event", message => {
         MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error) socket.emit("add/event", JSON.stringify({ code: 500, data: { message: error } }));
-            let db = client.db('ptutdb');
+            if (error) {
+                socket.emit("add/event", JSON.stringify({ code: 500, data: { message: error } }));
+            } else {
+                let db = client.db('ptutdb');
 
-            let jsonMessage = JSON.parse(message);
-            //verification inviteCodeUnique
-            db.collection("event").findOne({ inviteCode: jsonMessage.data.inviteCode }, (errorInvCode, resultsInvCode) => {
-                if (errorInvCode) socket.emit("add/event", JSON.stringify({ code: 500, data: { message: errorInvCode } }));
-
-                if (resultsInvCode) {
-                    socket.emit("add/event", JSON.stringify({ code: 403, data: { message: "Code d'invitation non unique" } }));
-                } else {
-                    // Ajout de l'événement
-                    let objNew = { title: jsonMessage.data.title, date: jsonMessage.data.date, description: jsonMessage.data.description, image: jsonMessage.data.image, guests: [], admin: jsonMessage.auth, inviteCode: jsonMessage.data.inviteCode, picturesList: [], status: jsonMessage.data.status };
-                    db.collection("event").insertOne(objNew, (error, results) => {
-                        if (error) socket.emit("add/event", JSON.stringify({ code: 500, data: { message: error } }));
-
-                        socket.emit("add/event", JSON.stringify({ code: 200, data: { message: "Event crée" } }));
-                    });
-                }
-
-            });
-
+                let jsonMessage = JSON.parse(message);
+                //verification inviteCodeUnique
+                db.collection("event").findOne({ inviteCode: jsonMessage.data.inviteCode }, (errorInvCode, resultsInvCode) => {
+                    if (errorInvCode) {
+                        socket.emit("add/event", JSON.stringify({ code: 500, data: { message: errorInvCode } }));
+                    } else if (resultsInvCode) {
+                        socket.emit("add/event", JSON.stringify({ code: 403, data: { message: "Code d'invitation non unique" } }));
+                    } else {
+                        // Ajout de l'événement
+                        let objNew = { title: jsonMessage.data.title, date: jsonMessage.data.date, description: jsonMessage.data.description, image: jsonMessage.data.image, guests: [], admin: jsonMessage.auth, inviteCode: jsonMessage.data.inviteCode, picturesList: [], status: jsonMessage.data.status 
+                        , commentEventList : []};
+                        db.collection("event").insertOne(objNew, (error, results) => {
+                            if (error) {
+                                socket.emit("add/event", JSON.stringify({ code: 500, data: { message: error } }));
+                            } else {
+                                socket.emit("add/event", JSON.stringify({ code: 200, data: { message: "Event crée" } }));
+                            }
+                        });
+                    }
+                });
+            }
         });
     })
 
+    //get all event
     socket.on("get/event", (message) => {
 
         MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error) socket.emit("get/event", JSON.stringify({ code: 500, data: { message: error } }));
-            let db = client.db('ptutdb');
+            if (error) {
+                socket.emit("get/event", JSON.stringify({ code: 500, data: { message: error } }));
+            } else {
+                let db = client.db('ptutdb');
 
-            let jsonMessage = JSON.parse(message);
-            db.collection("event").find({ $or: [{ admin: jsonMessage.auth }, { guests: jsonMessage.auth }] }).toArray((err, res) => {
-                if (err) socket.emit("get/event", JSON.stringify({ code: 500, data: { message: err } }));
-
-                socket.emit("get/event", JSON.stringify({ code: 200, data: res }));
-
-            })
-
+                let jsonMessage = JSON.parse(message);
+                db.collection("event").find({ $or: [{ admin: jsonMessage.auth }, { guests: jsonMessage.auth }] }).toArray((err, res) => {
+                    if (err){
+                        socket.emit("get/event", JSON.stringify({ code: 500, data: { message: err } }));
+                    } else {
+                        socket.emit("get/event", JSON.stringify({ code: 200, data: res }));
+                    }
+                })
+            }
         });
     })
 
-    //à refaire sprint 2
+    //get my event
+    socket.on("get/MyEvent", (message) => {
+
+        MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
+            if (error) {
+                socket.emit("get/MyEvent", JSON.stringify({ code: 500, data: { message: error } }));
+            } else {
+                let db = client.db('ptutdb');
+
+                let jsonMessage = JSON.parse(message);
+                db.collection("event").find({admin: jsonMessage.auth }).toArray((err, res) => {
+                    if (err){
+                        socket.emit("get/MyEvent", JSON.stringify({ code: 500, data: { message: err } }));
+                    } else {
+                        socket.emit("get/MyEvent", JSON.stringify({ code: 200, data: res }));
+                    }
+                })
+            }
+        });
+    })
+
+    //get event joined
+    socket.on("get/joinedEvent", (message) => {
+
+        MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
+            if (error) {
+                socket.emit("get/joinedEvent", JSON.stringify({ code: 500, data: { message: error } }));
+            } else {
+                let db = client.db('ptutdb');
+
+                let jsonMessage = JSON.parse(message);
+                db.collection("event").find({ guests: jsonMessage.auth }).toArray((err, res) => {
+                    if (err){
+                        socket.emit("get/joinedEvent", JSON.stringify({ code: 500, data: { message: err } }));
+                    } else {
+                        socket.emit("get/joinedEvent", JSON.stringify({ code: 200, data: res }));
+                    }
+                })
+            }
+        });
+    })
+
+    //update evenement
     socket.on("update/event", message => {
         MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error) socket.emit("get/event", JSON.stringify({ code: 500, data: { message: error } }));
-            let db = client.db('ptutdb');
+            if (error) {
+                socket.emit("get/event", JSON.stringify({ code: 500, data: { message: error } }));
+            } else {
+                let db = client.db('ptutdb');
 
-            let jsonMessage = JSON.parse(message);
-            db.collection("event").findOne({ _id: jsonMessage.auth }, (err, res) => {
-                if (err) socket.emit("update/event", JSON.stringify({ code: 500, data: { message: err } }));
-
-                if (res) {
-                    db.collection("event").updateOne(
-                        { _id: new ObjectID(jsonMessage.auth) },
-                        {
-                            $set: {
-                                title: jsonMessage.data.title, // Update
-                                date: jsonMessage.data.date,
-                                description: jsonMessage.data.description,
-                                image: jsonMessage.data.image,
-                                inviteCode: jsonMessage.data.inviteCode,
-                                status: jsonMessage.data.status
-                            }
-                        },(errUpdate,resupdate)=>{
-                                    //todo
-                        })
-                }
-            });
+                let jsonMessage = JSON.parse(message);
+                db.collection("event").findOne({ _id: jsonMessage.auth }, (err, res) => {
+                    if (err){
+                        socket.emit("update/event", JSON.stringify({ code: 500, data: { message: err } }));
+                    } else if (res) {
+                        db.collection("event").updateOne(
+                            { _id: new ObjectID(jsonMessage.auth) },
+                            {
+                                $set: {
+                                    title: jsonMessage.data.title, // Update
+                                    date: jsonMessage.data.date,
+                                    description: jsonMessage.data.description,
+                                    image: jsonMessage.data.image,
+                                    inviteCode: jsonMessage.data.inviteCode,
+                                    status: jsonMessage.data.status
+                                }
+                            },(errUpdate,resUpdate)=>{
+                                if (errUpdate) {
+                                    socket.emit("update/event", JSON.stringify({ code: 500, data: { message: errUpdate } }));
+                                } else {
+                                    socket.emit("update/event", JSON.stringify({ code: 200, data: res }));
+                                }      
+                            })
+                    }
+                });
+            }
+      
         });
     });
 
-    //a refaire sprint 2
+    //delete event
     socket.on("delete/event", message => {
-        console.log("on event deleted: " + JSON.stringify(message))
+        
         MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error) return funcCallback(error);
-            console.log("Connecté à la base de données");
-            let db = client.db('ptutdb');
+            if (error){
+                socket.emit("delete/event", JSON.stringify({ code: 500, data: { message: error } }));
+            } else {
+                let db = client.db('ptutdb');
+                let jsonMessage = JSON.parse(message);
 
-            db.collection("event").remove(
-                { _id: new ObjectID(message[0].idEvent) }
-            ).then((obj => {
-                console.log('Deleted - ' + obj);
-                socket.emit("getEvent", [{ error: obj.n, result: obj.ok, data: 0 }])
-            }))
-
+                db.collection("event").deleteOne(
+                    { _id: new ObjectID(jsonMessage.auth) }
+                ,(err,res)=>{
+                    if (err){
+                        socket.emit("delete/event", JSON.stringify({ code: 500, data: { message: err } }));
+                    } else {
+                        socket.emit("delete/event", JSON.stringify({ code: 200, data: { message: "Event supprimer" } }));
+                    }
+                })
+            }
         });
     })
     
@@ -209,19 +277,27 @@ io.on("connection", (socket) => {
         });
 
         //Ajouter des photos à l'évenement
-        //a refaire
         socket.on("add/post", message => {
             MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-                if (error) return funcCallback(error);
-                console.log("Connecté à la base de données");
-                let db = client.db('ptutdb');
-
-
-                db.collection("event").updateOne(
-                    { _id: new ObjectID(message[0].idEvent) }, { $push: { picturesList: { image: message[0].imageB64, userId: message[0].userId } } })
-
+                if (error){
+                    socket.emit("add/post", JSON.stringify({ code: 500, data: { message: err } }));
+                } else {
+                    let db = client.db('ptutdb');
+                    let jsonMessage = JSON.parse(message);
+                    db.collection("event").updateOne(
+                        { _id: new ObjectID(jsonMessage.auth) }, { $push: { picturesList: { image: jsonMessage.data.imageB64, userId: jsonMessage.data.userId,
+                            firstName: jsonMessage.data.firstName, lastName : jsonMessage.data.lastName , likeList : [] , commentList : []} } },(err,res)=>{
+                                if (err){
+                                    socket.emit("add/post", JSON.stringify({ code: 500, data: { message: err } }));
+                                } else {
+                                    //todo broadcast
+                                }
+                            })
+                    }
+                });
             });
-        });
+    
+              
 
         socket.on("like/post", message => {
             MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
@@ -272,15 +348,6 @@ io.on("connection", (socket) => {
             });
         });
 
-
-        //Deconnection 
-        /* socket.on("disconnect",() => {
-             
-            //voir quel code a envoye
-            socket.emit("disconnect",[{status:200}])
-            socket.close();
-    
-         })*/
     });
 });
 
