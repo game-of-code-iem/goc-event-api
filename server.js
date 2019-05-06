@@ -1,483 +1,273 @@
-//const DB = require("./constant/constant").DB
 const express = require('express');
-const controller = require('./controller/controller');
-let MongoClient = require("mongodb").MongoClient;
 let ObjectID = require('mongodb').ObjectID;
 const bcrypt = require('bcrypt');
-const DB = "mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true"
 const port = "4545"
-const host = "192.168.43.47"
-
-
+const host = "192.168.1.10"
 const app = express();
-
-// Pour autoriser les appels http
-//const cors = require('cors')
-//app.use(cors({credentials: true, origin: true}))
-
 let http = require("http").createServer(app);
-//const io = require('socket.io')(http, { origins: '*:*' });
-
-// CONTROLLER = controller
-/*io.on("connection", (socket) => {
-    console.log("on connection")
-    socket.emit("status", 202);
-
-    // INSCRIPTION
-    /*socket.on("register/user", message => {
-       
-    })*/
-
-    // CONNEXION
-    /*socket.on("login/user", message => {
-        
-    });
-
-
-    // EVENEMENTS
-    socket.on("add/event", message => {
-        MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error) {
-                socket.emit("add/event", JSON.stringify({ code: 500, data: { message: error } }));
-            } else {
-                let db = client.db('ptutdb');
-
-                let jsonMessage = JSON.parse(message);
-                //verification inviteCodeUnique
-                db.collection("event").findOne({ inviteCode: jsonMessage.data.inviteCode }, (errorInvCode, resultsInvCode) => {
-                    if (errorInvCode) {
-                        socket.emit("add/event", JSON.stringify({ code: 500, data: { message: errorInvCode } }));
-                    } else if (resultsInvCode) {
-                        socket.emit("add/event", JSON.stringify({ code: 403, data: { message: "Code d'invitation non unique" } }));
-                        console.log(jsonMessage)
-
-                    } else {
-                        // Ajout de l'événement
-                        let objNew = { title: jsonMessage.data.title, date: jsonMessage.data.date, description: jsonMessage.data.description, image: jsonMessage.data.image, guests: [], admin: jsonMessage.auth, inviteCode: jsonMessage.data.inviteCode, picturesList: [], status: jsonMessage.data.status 
-                        , commentEventList : []};
-                        db.collection("event").insertOne(objNew, (error, results) => {
-                            if (error) {
-                                socket.emit("add/event", JSON.stringify({ code: 500, data: { message: error } }));
-                            } else {
-                                console.log(jsonMessage)
-                                socket.emit("add/event", JSON.stringify({ code: 200, data: { message: "Event crée" } }));
-                            }
-                        });
-                    }
-                });
-            }
-        });
-    })
-
-    //get all event
-    socket.on("get/event", (message) => {
-
-        MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error) {
-                socket.emit("get/event", JSON.stringify({ code: 500, data: { message: error } }));
-            } else {
-                let db = client.db('ptutdb');
-
-                let jsonMessage = JSON.parse(message);
-                db.collection("event").find({ $or: [{ admin: jsonMessage.auth }, { guests: jsonMessage.auth }] }).toArray((err, res) => {
-                    if (err){
-                        socket.emit("get/event", JSON.stringify({ code: 500, data: { message: err } }));
-                    } else {
-                        socket.emit("get/event", JSON.stringify({ code: 200, data: res }));
-                        console.log(jsonMessage)
-
-                    }
-                })
-            }
-        });
-    })
-
-    //get my event
-    socket.on("get/MyEvent", (message) => {
-
-        MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error) {
-                socket.emit("get/MyEvent", JSON.stringify({ code: 500, data: { message: error } }));
-            } else {
-                let db = client.db('ptutdb');
-
-                let jsonMessage = JSON.parse(message);
-                db.collection("event").find({admin: jsonMessage.auth }).toArray((err, res) => {
-                    if (err){
-                        socket.emit("get/MyEvent", JSON.stringify({ code: 500, data: { message: err } }));
-                    } else {
-                        socket.emit("get/MyEvent", JSON.stringify({ code: 200, data: res }));
-                        console.log(jsonMessage)
-
-                    }
-                })
-            }
-        });
-    })
-
-    //get event joined
-    socket.on("get/joinedEvent", (message) => {
-
-        MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error) {
-                socket.emit("get/joinedEvent", JSON.stringify({ code: 500, data: { message: error } }));
-            } else {
-                let db = client.db('ptutdb');
-
-                let jsonMessage = JSON.parse(message);
-                db.collection("event").find({ guests: jsonMessage.auth }).toArray((err, res) => {
-                    if (err){
-                        socket.emit("get/joinedEvent", JSON.stringify({ code: 500, data: { message: err } }));
-                    } else {
-                        socket.emit("get/joinedEvent", JSON.stringify({ code: 200, data: res }));
-                        console.log(jsonMessage)
-                    }
-                })
-            }
-        });
-    })
-
-    //update evenement
-    socket.on("update/event", message => {
-        MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error) {
-                socket.emit("get/event", JSON.stringify({ code: 500, data: { message: error } }));
-            } else {
-                let db = client.db('ptutdb');
-
-                let jsonMessage = JSON.parse(message);
-                db.collection("event").findOne({ _id: jsonMessage.auth }, (err, res) => {
-                    if (err){
-                        socket.emit("update/event", JSON.stringify({ code: 500, data: { message: err } }));
-                    } else if (res) {
-                        db.collection("event").updateOne(
-                            { _id: new ObjectID(jsonMessage.auth) },
-                            {
-                                $set: {
-                                    title: jsonMessage.data.title, // Update
-                                    date: jsonMessage.data.date,
-                                    description: jsonMessage.data.description,
-                                    image: jsonMessage.data.image,
-                                    inviteCode: jsonMessage.data.inviteCode,
-                                    status: jsonMessage.data.status
-                                }
-                            },(errUpdate,resUpdate)=>{
-                                if (errUpdate) {
-                                    socket.emit("update/event", JSON.stringify({ code: 500, data: { message: errUpdate } }));
-                                } else {
-                                    socket.emit("update/event", JSON.stringify({ code: 200, data: res }));
-                                    console.log(jsonMessage)
-
-                                }      
-                            })
-                    }
-                });
-            }
-      
-        });
-    });
-
-    //delete event
-    socket.on("delete/event", message => {
-        
-        MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error){
-                socket.emit("delete/event", JSON.stringify({ code: 500, data: { message: error } }));
-            } else {
-                let db = client.db('ptutdb');
-                let jsonMessage = JSON.parse(message);
-
-                db.collection("event").deleteOne(
-                    { _id: new ObjectID(jsonMessage.auth) }
-                ,(err,res)=>{
-                    if (err){
-                        socket.emit("delete/event", JSON.stringify({ code: 500, data: { message: err } }));
-                    } else {
-                        socket.emit("delete/event", JSON.stringify({ code: 200, data: { message: "Event supprimer" } }));
-                        console.log(jsonMessage)
-
-                    }
-                })
-            }
-        });
-    })
-    
-    socket.on("join/event", message => {
-
-        MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-            if (error) socket.emit("join/event", JSON.stringify({ code: 500, data: { message: error } }));
-            let db = client.db('ptutdb');
-            let jsonMessage = JSON.parse(message);
-
-            //check if user is in event
-            db.collection("event").findOne({ guests: jsonMessage.auth }, (errorGuests, resultsGuests) => {
-                if (errorGuests) socket.emit("join/event", JSON.stringify({ code: 500, data: { message: errorGuests } }));
-
-                if (resultsGuests) {
-                    socket.emit("join/event", JSON.stringify({ code: 403, data: { message: "Event déjà rejoint" } }));
-                } else {
-                    db.collection("event").updateOne(
-                        { inviteCode: jsonMessage.data.inviteCode },
-                        { $push: { guests: jsonMessage.auth } }
-                        , (err, res) => {
-                            if (err) socket.emit("join/event", JSON.stringify({ code: 500, data: { message: err } }));
-
-                            socket.emit("join/event", JSON.stringify({ code: 200, data: { message: "Event Rejoint" } }));
-
-                        });
-                }
-            });
-        });
-
-        //Ajouter des photos à l'évenement
-        socket.on("add/post", message => {
-            MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-                if (error){
-                    socket.emit("add/post", JSON.stringify({ code: 500, data: { message: err } }));
-                } else {
-                    let db = client.db('ptutdb');
-                    let jsonMessage = JSON.parse(message);
-                    db.collection("event").updateOne(
-                        { _id: new ObjectID(jsonMessage.auth) }, { $push: { picturesList: { image: jsonMessage.data.imageB64, userId: jsonMessage.data.userId,
-                            firstName: jsonMessage.data.firstName, lastName : jsonMessage.data.lastName , likeList : [] , commentList : []} } },(err,res)=>{
-                                if (err){
-                                    socket.emit("add/post", JSON.stringify({ code: 500, data: { message: err } }));
-                                } else {
-                                    //todo broadcast
-                                }
-                            })
-                    }
-                });
-            });
-    
-              
-
-        socket.on("like/post", message => {
-            MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-                if (error){
-                    socket.emit("like/post", JSON.stringify({ code: 500, data: { message: error } }));
-                } else {
-                    let db = client.db('ptutdb');
-                    let jsonMessage = JSON.parse(message);
-                    //check if photo is already liked by user
-                    db.collection('event').findOne({_id: new ObjectID(jsonMessage.auth),'picturesList.likeList': {idUser:jsonMessage.data.idUser, liked:true}},(errFind,resFind)=>{
-                        if(errFind){
-                            socket.emit("like/post", JSON.stringify({ code: 500, data: { message: errFind } }));
-                        }else if (resFind) {
-                            //like 
-                            socket.emit("like/post",JSON.stringify({ code: 403, data: { message: "Event déjà like" } }));
-                        } else {
-                            //ajout like
-                            db.collection('event').updateOne({_id: new ObjectID(jsonMessage.auth)}, {$push: {'picturesList.likeList': {idUser:jsonMessage.data.idUser,
-                                liked: true}}},(err,res)=>{
-                                    if(err){
-                                        socket.emit("like/post", JSON.stringify({ code: 500, data: { message: err } }));
-                                    } else {
-                                        //todo broadcast
-                                    }
-                                })
-                        }
-                    })
-                }
-            });
-        });
-
-        socket.on("comment/post", message => {
-            MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-
-
-            });
-        });
-
-        socket.on("delete/post", message => {
-            MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-
-
-            });
-        });
-
-        socket.on("unlike/post", message => {
-            MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-
-
-            });
-        });
-
-        socket.on("uncomment/post", message => {
-            MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-
-
-            });
-        });
-
-        socket.on("get/post", message => {
-            MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-
-
-            });
-        });
-
-        socket.on("update/post", message => {
-            MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-
-
-            });
-        });
-
-    });
-});*/
-
-const {Dispatcher} = require("./engine/Dispatcher")
+const { Dispatcher } = require("./engine/Dispatcher")
+const { MongoDBManager } = require("./engine/MangoDB")
+let mongoDB = new MongoDBManager("mongodb+srv://lp:lp@gocdb-jmzof.gcp.mongodb.net/test?retryWrites=true")
 let dispatcher = new Dispatcher()
 const SocketManager = require("./engine/Socket")
 
+dispatcher.add("register/user", registerUser)
+dispatcher.add("login/user", loginUser)
+dispatcher.add("add/event", addEvent)
+dispatcher.add("get/event", getEvent)
+dispatcher.add("get/myEvent", getMyEvent)
+dispatcher.add("update/event", updateEvent)
+dispatcher.add("get/joinedEvent", getJoinedEvent)
+dispatcher.add("join/event", joinEvent)
+dispatcher.add("delete/event", deleteEvent)
+dispatcher.add("add/post", addPost)
+dispatcher.add("like/post", likePost)
+dispatcher.add("comment/post", commentPost)
+dispatcher.add("delete/post", deletePost)
+dispatcher.add("unlike/post", unlikePost)
+dispatcher.add("uncomment/post", unCommentPost)
+dispatcher.add("get/post", getPost)
+SocketManager.init(dispatcher, http)
 
-
-dispatcher.add("register/user",registerUser)
-dispatcher.add("login/user",loginUser)
-dispatcher.add("add/event",addEvent)
-dispatcher.add("get/event",getEvent)
-dispatcher.add("get/myEvent",getMyEvent)
-dispatcher.add("update/event",updateEvent)
-dispatcher.add("get/joinedEvent",getJoinedEvent)
-dispatcher.add("join/event",joinEvent)
-dispatcher.add("delete/event",deleteEvent)
-dispatcher.add("add/post",addPost)
-dispatcher.add("like/post",likePost)
-dispatcher.add("comment/post",commentPost)
-dispatcher.add("delete/post",deletePost)
-dispatcher.add("unlike/post",unlikePost)
-dispatcher.add("uncomment/post",unCommentPost)
-dispatcher.add("get/post",getPost)
-
-SocketManager.init(dispatcher,http)
-
-function registerUser(message,id) {
-    MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-        if (error) socket.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }));
-        let db = client.db('ptutdb');
-        //check si adresse mail unique
-        let jsonMessage = JSON.parse(message);
-        let uniqueMailAdressQuery = { mail: jsonMessage.data.mail }
-        db.collection("user").findOne(uniqueMailAdressQuery, (error, results) => {
-            if (error){
-                SocketManager.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }),id);
-                console.log(error)
-            } else if (results) {
-                SocketManager.emit("register/user", JSON.stringify({ code: 403, data: { message: "Adresse mail déja utilisé" } }),id);
-                console.log(jsonMessage)
-
-            } else {
-                //adresse mail non utilise
-                let passwordToHash = jsonMessage.data.password;
-                bcrypt.hash(passwordToHash, 10).then(hash => {
-                    // Store hash in your password DB.
-                    let objNew = { firstName: jsonMessage.data.firstName, lastName: jsonMessage.data.lastName, password: hash, mail: jsonMessage.data.mail };
-                    db.collection("user").insertOne(objNew, (error, results) => {
-                        if (error){
-                            SocketManager.emit("register/user", JSON.stringify({ code: 500, data: { message: error } }),id);
-                        } else {
-                            SocketManager.emit("register/user", JSON.stringify({ code: 201, data: { message: "Utilisateur inscrit", user: { id: results.insertedId, firstName: jsonMessage.data.firstName, lastName: jsonMessage.data.lastName, mail: jsonMessage.data.mail } } }),id);
-                            console.log(jsonMessage)
-
-                        }
-                    });
-                })
-            }
-        });
-    });
-    
-}
-
-function loginUser(message,id) {
-    MongoClient.connect(DB, { useNewUrlParser: true }, (error, client) => {
-        if (error){
-            SocketManager.emit("login/user", JSON.stringify({ code: 500, data: { message: error } }),id);
+function registerUser(message, id) {
+    let uniqueMailAdressQuery = { mail: message.data.mail }
+    mongoDB.getCollection("user").findOne(uniqueMailAdressQuery, (error, results) => {
+        if (error) {
+            SocketManager.emit("register/user", { code: 500, data: { message: error }}, id)
+        } else if (results) {
+            SocketManager.emit("register/user", { code: 403, data: { message: "Adresse mail déja utilisé" } }, id);
         } else {
-            let db = client.db('ptutdb');
-
-            let jsonMessage = JSON.parse(message);
-            // Load hash from your password DB.
-            db.collection('user').findOne({ mail: jsonMessage.data.mail }, (err, result) => {
-                //adresse mail trouver
-                if (result) {
-                    //password here
-                    bcrypt.compare(jsonMessage.data.password, result.password).then(res => {
-                        //password match
-                        if (res) {
-                            SocketManager.emit("login/user", JSON.stringify({
-                                code: 200, data: {
-                                    message: "Utilisateur connecté", user: {
-                                        userId: result._id, firstName: result.firstName, lastName: result.lastName,
-                                        mail: result.mail
-                                    }
-                                }
-                            }),id);
-                        } else {
-                            SocketManager.emit("login/user", JSON.stringify({ code: 403, data: { message: "Mot de passe incorrecte" } }),id);
-                        }
-                    })
-                } else {
-                    SocketManager.emit("login/user", JSON.stringify({ code: 403, data: { message: "Adresse mail inconnue" } }),id);
-                }
-            });
+            let passwordToHash = message.data.password;
+            bcrypt.hash(passwordToHash, 10).then(hash => {
+                let objNew = { firstName: message.data.firstName, lastName: message.data.lastName, password: hash, mail: message.data.mail };
+                mongoDB.getCollection("user").insertOne(objNew, (error, results) => {
+                    if (error) {
+                        SocketManager.emit("register/user", {
+                            code: 500, 
+                            data: { 
+                                message:error
+                            }
+                        }, id);
+                    } else {
+                        SocketManager.emit("register/user", { 
+                            code: 201, 
+                            data: { 
+                                message: "Utilisateur inscrit", 
+                                user: { 
+                                    id: results.insertedId, 
+                                    firstName: message.data.firstName, 
+                                    lastName: message.data.lastName, 
+                                    mail: message.data.mail 
+                                } 
+                            } 
+                        }, id)
+                    }
+                });
+            })
         }
     })
 }
 
-function addEvent(data,id) {
+function loginUser(message,id) {
+    mongoDB.getCollection('user').findOne({ mail: message.data.mail }, (err, result) => {
+        if (result) {
+            bcrypt.compare(message.data.password, result.password).then(res => {
+                if (res) {
+                    SocketManager.emit("login/user",{
+                        code: 200, data: {
+                            message: "Utilisateur connecté", user: {
+                                userId: result._id, 
+                                firstName: result.firstName, 
+                                lastName: result.lastName,
+                                mail: result.mail
+                            }
+                        }
+                    }, id);
+                } else {
+                    SocketManager.emit("login/user",{code:403,data:{message:"Mot de passe incorrecte"}},id);
+                }
+            })
+        } else {
+            SocketManager.emit("login/user",{code: 403,data:{message: "Adresse mail inconnue"}},id);
+        }
+    });
 
 }
 
-function getEvent(data,id) {
-    
+function addEvent(message, id) {
+    mongoDB.getCollection("event").findOne({inviteCode: message.data.inviteCode},(errorInvCode, resultsInvCode) => {
+        if (errorInvCode) {
+            SocketManager.emit("add/event",{code:500,data:{message: errorInvCode}},id);
+        } else if (resultsInvCode) {
+            SocketManager.emit("add/event",{code:403,data:{message:"Code d'invitation non unique"}},id);
+        } else {
+            let objNew = {
+                title: message.data.title, 
+                date: message.data.date, 
+                description: message.data.description, 
+                image: message.data.image, 
+                guests: [], 
+                admin: message.auth, 
+                inviteCode: message.data.inviteCode, 
+                picturesList: [], 
+                status: message.data.status, 
+                commentEventList: []
+            };
+            mongoDB.getCollection("event").insertOne(objNew, (error, results) => {
+                if (error) {
+                    SocketManager.emit("add/event", { code: 500, data: { message: error } }, id);
+                } else {
+                    console.log(message)
+                    SocketManager.emit("add/event", { code: 200, data: { message: "Event crée" } }, id);
+                }
+            });
+        }
+    });
 }
 
-function getMyEvent(data,id) {
+function getEvent(message, id) {
+    mongoDB.getCollection("event").find({ $or: [{ admin: message.auth }, { guests: message.auth }] }).toArray((err, res) => {
+        if (err) {
+            SocketManager.emit("get/event", { code: 500, data: { message: err } }, id);
+        } else {
+            SocketManager.emit("get/event", { code: 200, data: res }, id);
+            console.log(message)
+        }
+    })
+}
+
+function getMyEvent(message, id) {
+    mongoDB.getCollection("event").find({ admin: message.auth }).toArray((err, res) => {
+        if (err) {
+            SocketManager.emit("get/MyEvent", { code: 500, data: { message: err } }, id);
+        } else {
+            SocketManager.emit("get/MyEvent", { code: 200, data: res }, id);
+        }
+    })
+}
+
+function updateEvent(message, id) {
+    mongoDB.getCollection("event").findOne({ _id: message.auth }, (err, res) => {
+        if (err) {
+            SocketManager.emit("update/event", { code: 500, data: { message: err } }, id);
+        } else if (res) {
+            mongoDB.getCollection("event").updateOne({ _id: new ObjectID(message.auth) },
+                {
+                    $set: {
+                        title: message.data.title,
+                        date: message.data.date,
+                        description: message.data.description,
+                        image: message.data.image,
+                        inviteCode: message.data.inviteCode,
+                        status: message.data.status
+                    }
+                }, (errUpdate, resUpdate) => {
+                    if (errUpdate) {
+                        SocketManager.emit("update/event", { code: 500, data: { message: errUpdate } }, id);
+                    } else {
+                        SocketManager.emit("update/event", { code: 200, data: res }, id);
+                    }
+                })
+        }
+    });
+}
+
+function getJoinedEvent(message, id) {
+    mongoDB.getCollection("event").find({ guests: message.auth }).toArray((err, res) => {
+        if (err) {
+            SocketManager.emit("get/joinedEvent", { code: 500, data: { message: err } }, id);
+        } else {
+            SocketManager.emit("get/joinedEvent", { code: 200, data: res }, id);
+        }
+    })
+}
+
+function deleteEvent(message, id) {
+    mongoDB.getCollection("event").deleteOne(
+        { _id: new ObjectID(message.auth) }, (err, res) => {
+            if (err) {
+                SocketManager.emit("delete/event", { code: 500, data: { message: err } }, id);
+            } else {
+                SocketManager.emit("delete/event", { code: 200, data: { message: "Event supprimer" } }, id);
+            }
+        })
+}
+function joinEvent(message, id) {
+    mongoDB.getCollection("event").findOne({ guests: message.auth }, (errorGuests, resultsGuests) => {
+        if (errorGuests) {
+            SocketManager.emit("join/event", { code: 500, data: { message: errorGuests } }, id);
+        }
+        if (resultsGuests) {
+            SocketManager.emit("join/event", { code: 403, data: { message: "Event déjà rejoint" } }, id);
+        } else {
+            mongoDB.getCollection("event").updateOne({inviteCode: message.data.inviteCode},{$push:{ guests: message.auth}}, (err, res) => {
+                if (err) SocketManager.emit("join/event", { code: 500, data: { message: err } }, id);
+                    SocketManager.emit("join/event", { code: 200, data: { message: "Event Rejoint" } }, id);
+            });
+        }
+    });
+}
+
+function addPost(message, id) {
+    getCollection("event").updateOne(
+        { _id: new ObjectID(message.auth) }, {
+            $push: {
+                picturesList: {
+                    image: message.data.imageB64, userId: message.data.userId,
+                    firstName: message.data.firstName, lastName: message.data.lastName, likeList: [], commentList: []
+                }
+            }
+        }, (err, res) => {
+            if (err) {
+                SocketManager.emit("add/post", { code: 500, data: { message: err } }, id);
+            } else {
+                //todo broadcast
+            }
+        })
+}
+
+function likePost(message, id) {
+    getCollection('event').findOne({ _id: new ObjectID(message.auth), 'picturesList.likeList': { idUser: message.data.idUser, liked: true } }, (errFind, resFind) => {
+        if (errFind) {
+            SocketManager.emit("like/post", { code: 500, data: { message: errFind } }, id);
+        } else if (resFind) {
+            SocketManager.emit("like/post", { code: 403, data: { message: "Event déjà like" } }, id);
+        } else {
+            getCollection('event').updateOne({ _id: new ObjectID(message.auth) }, {
+                $push: {
+                    'picturesList.likeList': {
+                        idUser: message.data.idUser,
+                        liked: true
+                    }
+                }
+            }, (err, res) => {
+                if (err) {
+                    SocketManager.emit("like/post", { code: 500, data: { message: err } }, id);
+                } else {
+                    //todo broadcast
+                }
+            })
+        }
+    })
+}
+
+function commentPost(message, id) {
 
 }
 
-function updateEvent(data,id) {
+function deletePost(message, id) {
 
 }
 
-function getJoinedEvent(data,id) {
+function unlikePost(message, id) {
 
 }
 
-function deleteEvent(data,id) {
+function unCommentPost(message, id) {
 
 }
 
-function joinEvent(data,id) {
-
-}
-
-function addPost(data,id) {
-
-}
-
-function likePost(data,id) {
-
-}
-
-function commentPost(data,id) {
-
-}
-
-function deletePost(data,id) {
-
-}
-
-function unlikePost(data,id) {
-
-}
-
-function unCommentPost(data,id) {
-
-}
-
-function getPost(data,id) {
+function getPost(message, id) {
 
 }
 
