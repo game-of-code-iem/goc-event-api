@@ -2,7 +2,7 @@ const express = require('express');
 let ObjectID = require('mongodb').ObjectID;
 const bcrypt = require('bcrypt');
 const port = "4545"
-const host = "192.168.43.233"
+const host = "192.168.43.121"
 const app = express();
 let http = require("http").createServer(app);
 const { Dispatcher } = require("./engine/Dispatcher")
@@ -27,6 +27,8 @@ dispatcher.add("delete/post", deletePost)
 dispatcher.add("unlike/post", unlikePost)
 dispatcher.add("uncomment/post", unCommentPost)
 dispatcher.add("get/post", getPost)
+dispatcher.add("action", action)
+
 SocketManager.init(dispatcher, http)
 
 function registerUser(message, id) {
@@ -105,7 +107,8 @@ function addEvent(message, id) {
                 title: message.data.title, 
                 date: message.data.date, 
                 description: message.data.description, 
-                image: {mimeType:message.data.mimeType,binary:message.data.binary}, 
+                extension:message.data.extension,
+                uri:message.data.uri,
                 guests: [], 
                 admin: message.auth, 
                 inviteCode: message.data.inviteCode, 
@@ -147,28 +150,39 @@ function getMyEvent(message, id) {
 }
 
 function updateEvent(message, id) {
-    mongoDB.getEvent().findOne({ _id: message.auth }, (err, res) => {
+    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent) }, (err, res) => {
         if (err) {
+            console.log("error " + err)
             SocketManager.emit("update/event", { code: 500, data: { message: err } }, id);
+
         } else if (res) {
-            mongoDB.getEvent().updateOne({ _id: new ObjectID(message.auth) },
+            console.log("res " + res)
+            mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent) },
                 {
                     $set: {
                         title: message.data.title,
                         date: message.data.date,
                         description: message.data.description,
-                        image: message.data.image,
+                        extension:message.data.extension,
+                        uri:message.data.uri, 
                         inviteCode: message.data.inviteCode,
                         status: message.data.status
                     }
                 }, (errUpdate, resUpdate) => {
                     if (errUpdate) {
+                        console.log("error " + err)
                         SocketManager.emit("update/event", { code: 500, data: { message: errUpdate } }, id);
                     } else {
-                        SocketManager.emit("update/event", { code: 200, data: res }, id);
+                        console.log("res update " + resUpdate)
+                        SocketManager.emit("update/event", { code: 200, data: resUpdate }, id);
+                        SocketManager.broadcast("action",{ code: 200, data: { action: "update/event" } },id)
                     }
                 })
+        }else {
+            SocketManager.emit("update/event", { code: 500, data: "no event found" }, id);
         }
+        console.log(message.data.idEvent)
+
     });
 }
 
@@ -201,8 +215,11 @@ function joinEvent(message, id) {
             SocketManager.emit("join/event", { code: 403, data: { message: "Event déjà rejoint" } }, id);
         } else {
             mongoDB.getEvent().updateOne({inviteCode: message.data.inviteCode},{$push:{ guests: message.auth}}, (err, res) => {
-                if (err) SocketManager.emit("join/event", { code: 500, data: { message: err } }, id);
+                if (err){
+                    SocketManager.emit("join/event", { code: 500, data: { message: err } }, id);
+                } else {
                     SocketManager.emit("join/event", { code: 200, data: { message: "Event Rejoint" } }, id);
+                }    
             });
         }
     });
@@ -210,24 +227,34 @@ function joinEvent(message, id) {
 
 function addPost(message, id) {
     mongoDB.getEvent().updateOne(
-        { _id: new ObjectID(message.auth) }, {
+        { _id: new ObjectID(message.data.idEvent) }, {
             $push: {
                 picturesList: {
-                    image: message.data.imageB64, userId: message.data.userId,
-                    firstName: message.data.firstName, lastName: message.data.lastName, likeList: [], commentList: []
+                    extension:message.data.extension,
+                    uri:message.data.uri, 
+                    userId: message.auth,
+                    firstName: message.data.firstName, 
+                    lastName: message.data.lastName, 
+                    likeList: [], 
+                    commentList: []
                 }
             }
         }, (err, res) => {
             if (err) {
+                console.log(err + "rr")
                 SocketManager.emit("add/post", { code: 500, data: { message: err } }, id);
-            } else {
-               // SocketManager.broadcast("add/post",)
+            } else if (res.modifiedCount == 0){
+                console.log(res + "res")
+                SocketManager.emit("add/post", { code: 500, data: { message: "Event non trouvé" } }, id);
+               
+            }else {
+                //SocketManager.broadcast("add/post",)
             }
         })
 }
 
 function likePost(message, id) {
-    mongoDB.getEvent().findOne({ _id: new ObjectID(message.auth), 'picturesList.likeList': { idUser: message.data.idUser, liked: true } }, (errFind, resFind) => {
+    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.likeList': { idUser: message.auth} }, (errFind, resFind) => {
         if (errFind) {
             SocketManager.emit("like/post", { code: 500, data: { message: errFind } }, id);
         } else if (resFind) {
@@ -236,8 +263,7 @@ function likePost(message, id) {
             mongoDB.getEvent().updateOne({ _id: new ObjectID(message.auth) }, {
                 $push: {
                     'picturesList.likeList': {
-                        idUser: message.data.idUser,
-                        liked: true
+                        idUser: message.data.idUser
                     }
                 }
             }, (err, res) => {
@@ -267,7 +293,18 @@ function unCommentPost(message, id) {
 
 }
 
+function action(message, id) {
+
+}
+
 function getPost(message, id) {
+    mongoDB.getEvent().find({_id: new ObjectID(message.data.idEvent)}).toArray((err, res) => {
+        if (err) {
+            SocketManager.emit("get/post", { code: 500, data: { message: err } }, id);
+        } else {
+            SocketManager.emit("get/post", { code: 200, data: res }, id);
+        }
+    })
 
 }
 

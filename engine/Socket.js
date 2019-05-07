@@ -166,12 +166,19 @@ function getSocket(id) {
     return sockets.get(id)
 }
 
-function broadcast(route, data) {
-    io.broadcast(route, data)
+function broadcast(route, data, id) {
+    console.log(data)
+    try {
+        let socket = getSocket(id)
+        socket.broadcast.emit(route, JSON.stringify(data))
+        socket.emit(route, JSON.stringify(data))
+    } catch (error) {
+        console.log("Anomalie: Invalid JSON PARSING" + error)
+    }
 }
 
 function emit(route, data, id) {
-    console.log("SEND DATA => " + data)
+    console.log(data)
     try {
         let socket = getSocket(id)
         socket.emit(route, JSON.stringify(data))
