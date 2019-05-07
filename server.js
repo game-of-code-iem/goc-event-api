@@ -2,7 +2,7 @@ const express = require('express');
 let ObjectID = require('mongodb').ObjectID;
 const bcrypt = require('bcrypt');
 const port = "4545"
-const host = "192.168.1.10"
+const host = "192.168.43.233"
 const app = express();
 let http = require("http").createServer(app);
 const { Dispatcher } = require("./engine/Dispatcher")
@@ -105,7 +105,7 @@ function addEvent(message, id) {
                 title: message.data.title, 
                 date: message.data.date, 
                 description: message.data.description, 
-                image: message.data.image, 
+                image: {mimeType:message.data.mimeType,binary:message.data.binary}, 
                 guests: [], 
                 admin: message.auth, 
                 inviteCode: message.data.inviteCode, 
@@ -221,7 +221,7 @@ function addPost(message, id) {
             if (err) {
                 SocketManager.emit("add/post", { code: 500, data: { message: err } }, id);
             } else {
-                //todo broadcast
+               // SocketManager.broadcast("add/post",)
             }
         })
 }

@@ -171,6 +171,7 @@ function broadcast(route, data) {
 }
 
 function emit(route, data, id) {
+    console.log("SEND DATA => " + data)
     try {
         let socket = getSocket(id)
         socket.emit(route, JSON.stringify(data))
