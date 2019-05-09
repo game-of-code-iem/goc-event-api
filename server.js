@@ -268,24 +268,23 @@ function addPost(message, id) {
 }
 
 function likePost(message, id) {
-    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList': { id: new ObjectID(message.data.idPicture)} }, (errFind, resFind) => {
-        console.log(resFind)
-        console.log(message)
-
+    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
+    
         if (errFind) {
             SocketManager.emit("like/post", { code: 500, data: { message: errFind } }, id);
         } else if (resFind) {
             
-            mongoDB.getEvent.findOne({_id: new ObjectID(message.data.idEvent), 'picturesList.id': { id: new ObjectID(message.data.idPicture)}, 'pictureslist.likeListe.idUser':{idUser:message.auth}},(errFindLike,resFindLike)=>{
-                if (errFind) {
+            mongoDB.getEvent().findOne({_id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.likeList.idUser':new ObjectID(message.auth)},(errFindLike,resFindLike)=>{
+                
+                if (errFindLike) {
                     SocketManager.emit("like/post", { code: 500, data: { message: errFind } }, id);
                 }else if(resFindLike){
                     SocketManager.emit("like/post", { code: 403, data: { message: "Event déjà like" } }, id);
                 }else {
-                    mongoDB.getEvent().updateOne({_id: new ObjectID(message.data.idEvent), 'picturesList.id': { id: new ObjectID(message.data.idPicture)}}, {
+                    mongoDB.getEvent().updateOne({_id: new ObjectID(message.data.idEvent), 'picturesList.id':  new ObjectID(message.data.idPicture)}, {
                         $push: {
-                            'picturesList.likeList.idUser': {
-                                idUser: message.data.idUser
+                            'picturesList.$.likeList': {
+                                idUser: new ObjectID(message.auth)
                             }
                         }
                     }, (err, res) => {
