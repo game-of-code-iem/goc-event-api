@@ -129,7 +129,7 @@ function addEvent(message, id) {
 }
 
 function getEvent(message, id) {
-    mongoDB.getEvent().find({ $or: [{ admin: message.auth }, { guests: message.auth }] }).toArray((err, res) => {
+    mongoDB.getEvent().find({ $or: [{ admin: message.auth }, {'guests.id': new ObjectID(message.auth)}] }).toArray((err, res) => {
         if (err) {
             SocketManager.emit("get/event", { code: 500, data: { message: err } }, id);
         } else {
@@ -187,7 +187,7 @@ function updateEvent(message, id) {
 }
 
 function getJoinedEvent(message, id) {
-    mongoDB.getEvent().find({ guests: message.auth }).toArray((err, res) => {
+    mongoDB.getEvent().find({'guests.id': new ObjectID(message.auth)}).toArray((err, res) => {
         if (err) {
             SocketManager.emit("get/joinedEvent", { code: 500, data: { message: err } }, id);
         } else {
