@@ -370,11 +370,11 @@ function getPost(message, id) {
 
 //renvoie la liste users
 function getUsers(message, id) {
-    mongoDB.getUser().find({}).project({_id:1,firstName:1,lastName:1,mail:1,password:0}).toArray((err, res) => {
+    mongoDB.getUser().find({}).project({_id:1,firstName:1,lastName:1,mail:1}).toArray((err, res) => {
         if (err) {
-            SocketManager.emit("get/post", { code: 500, data: { message: err } }, id);
+            SocketManager.emit("get/users", { code: 500, data: { message: err } }, id);
         } else {
-            SocketManager.emit("get/post", { code: 200, data: res[0].picturesList }, id);
+            SocketManager.emit("get/users", { code: 200, data: res }, id);
         }
     })
 
