@@ -27,6 +27,7 @@ dispatcher.add("delete/post", deletePost)
 dispatcher.add("unlike/post", unlikePost)
 dispatcher.add("uncomment/post", unCommentPost)
 dispatcher.add("get/post", getPost)
+dispatcher.add("get/users", getUsers)
 dispatcher.add("action", action)
 
 SocketManager.init(dispatcher, http)
@@ -313,7 +314,38 @@ function deletePost(message, id) {
 }
 
 function unlikePost(message, id) {
-
+    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
+    
+        if (errFind) {
+            SocketManager.emit("like/post", { code: 500, data: { message: errFind } }, id);
+        } else if (resFind) {
+            
+            mongoDB.getEvent().findOne({_id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.likeList.idUser':new ObjectID(message.auth)},(errFindLike,resFindLike)=>{
+                
+                if (errFindLike) {
+                    SocketManager.emit("like/post", { code: 500, data: { message: errFind } }, id);
+                }else if(resFindLike){
+                    mongoDB.getEvent().updateOne({_id: new ObjectID(message.data.idEvent), 'picturesList.id':  new ObjectID(message.data.idPicture)}, {
+                        $pull: {
+                            'picturesList.$.likeList': {
+                                idUser: new ObjectID(message.auth)
+                            }
+                        }
+                    }, (err, res) => {
+                        if (err) {
+                            SocketManager.emit("like/post", { code: 500, data: { message: err } }, id);
+                        } else {           
+                            SocketManager.broadcast("action",{ code: 200, data: { action: "get/event" } },id)      
+                        }
+                    })                  
+                }else {
+                    SocketManager.emit("like/post", { code: 403, data: { message: "Impossible d'unlike la photo" } }, id);
+                }
+            })
+        } else {
+            SocketManager.emit("like/post", { code: 403, data: { message: "Photo non trouvé" } }, id);
+        }
+    })
 }
 
 function unCommentPost(message, id) {
@@ -327,6 +359,18 @@ function action(message, id) {
 //renvoie la liste des images d'un event
 function getPost(message, id) {
     mongoDB.getEvent().find({_id: new ObjectID(message.data.idEvent)}).toArray((err, res) => {
+        if (err) {
+            SocketManager.emit("get/post", { code: 500, data: { message: err } }, id);
+        } else {
+            SocketManager.emit("get/post", { code: 200, data: res[0].picturesList }, id);
+        }
+    })
+
+}
+
+//renvoie la liste users
+function getUsers(message, id) {
+    mongoDB.getUser().find({}).project({_id:1,firstName:1,lastName:1,mail:1,password:0}).toArray((err, res) => {
         if (err) {
             SocketManager.emit("get/post", { code: 500, data: { message: err } }, id);
         } else {
