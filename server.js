@@ -312,26 +312,36 @@ function likePost(message, id) {
 }
 
 function commentPost(message, id) {
+    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
 
-    mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, {
-        $push: {
-            'picturesList.$.commentList': {
-                id: new ObjectID(),
-                idUser: new ObjectID(message.auth),
-                date: message.data.date,
-                text: message.data.text,
-                firstName: message.data.firstName,
-                lastName: message.data.lastName,
-                mail: message.data.mail
-            }
-        }
-    }, (err, res) => {
-        if (err) {
-            SocketManager.emit("comment/post", { code: 500, data: { message: err } }, id);
+        if (errFind) {
+            SocketManager.emit("coment/post", { code: 500, data: { message: errFind } }, id);
+        } else if (resFind) {
+            mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, {
+                $push: {
+                    'picturesList.$.commentList': {
+                        id: new ObjectID(),
+                        idUser: new ObjectID(message.auth),
+                        date: message.data.date,
+                        text: message.data.text,
+                        firstName: message.data.firstName,
+                        lastName: message.data.lastName,
+                        mail: message.data.mail,
+                        likeList : []
+                    }
+                }
+            }, (err, res) => {
+                if (err) {
+                    SocketManager.emit("comment/post", { code: 500, data: { message: err } }, id);
+                } else {
+                    //todo broadcast
+                    SocketManager.emit("comment/post", { code: 200, data: { message: "photo commenté" } }, id);
+                    SocketManager.broadcast("action", { code: 200, data: { action: "comment/post" } }, id)
+
+                }
+            })
         } else {
-            //todo broadcast
-            SocketManager.emit("comment/post", { code: 200, data: { message: "photo commenté" } }, id);
-            SocketManager.broadcast("action", { code: 200, data: { action: "comment/post" } }, id)
+            SocketManager.emit("comment/post", { code: 403, data: { message: "Photo non trouvé" } }, id);
 
         }
     })
@@ -379,7 +389,39 @@ function unlikePost(message, id) {
 }
 
 function unCommentPost(message, id) {
+    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
 
+        if (errFind) {
+            SocketManager.emit("uncomment/post", { code: 500, data: { message: errFind } }, id);
+        } else if (resFind) {
+
+            mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.commentList.id': new ObjectID(message.data.idComment) }, (errFindLike, resFindLike) => {
+
+                if (errFindLike) {
+                    SocketManager.emit("uncomment/post", { code: 500, data: { message: errFind } }, id);
+                } else if (resFindLike) {
+                    mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.commentList.id': new ObjectID(message.data.idComment) }, {
+                        $pull: {
+                            'picturesList.$.commentList': {
+                                id: new ObjectID(message.data.idComment)
+                            }
+                        }
+                    }, (err, res) => {
+                        if (err) {
+                            SocketManager.emit("uncomment/post", { code: 500, data: { message: err } }, id);
+                        } else {
+                            SocketManager.emit("uncomment/post", { code: 200, data: { message: "commentaire supprimer" } }, id);
+                            SocketManager.broadcast("action", { code: 200, data: { action: "uncomment/post" } }, id)
+                        }
+                    })
+                } else {
+                    SocketManager.emit("uncomment/post", { code: 403, data: { message: "Impossible de supprimer le commentaire" } }, id);
+                }
+            })
+        } else {
+            SocketManager.emit("like/post", { code: 403, data: { message: "Photo non trouvé" } }, id);
+        }
+    })
 }
 
 function action(message, id) {
