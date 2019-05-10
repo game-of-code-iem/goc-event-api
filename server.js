@@ -29,6 +29,10 @@ dispatcher.add("uncomment/post", unCommentPost)
 dispatcher.add("get/post", getPost)
 dispatcher.add("get/users", getUsers)
 dispatcher.add("action", action)
+dispatcher.add("like/comment", likeComment)
+dispatcher.add("unlike/comment", unlikeComment)
+
+
 
 SocketManager.init(dispatcher, http)
 
@@ -327,7 +331,7 @@ function commentPost(message, id) {
                         firstName: message.data.firstName,
                         lastName: message.data.lastName,
                         mail: message.data.mail,
-                        likeList : []
+                        likeList: []
                     }
                 }
             }, (err, res) => {
@@ -355,7 +359,7 @@ function deletePost(message, id) {
             SocketManager.emit("delete/post", { code: 500, data: { message: errFind } }, id);
         } else if (resFind) {
 
-            mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture)}, (errFindLike, resFindLike) => {
+            mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFindLike, resFindLike) => {
 
                 if (errFindLike) {
                     SocketManager.emit("delete/post", { code: 500, data: { message: errFind } }, id);
@@ -482,6 +486,103 @@ function getUsers(message, id) {
         }
     })
 
+}
+//todo
+function likeComment(message, id) {
+    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
+
+        if (errFind) {
+            SocketManager.emit("like/comment", { code: 500, data: { message: errFind } }, id);
+        } else if (resFind) {
+
+            mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.commentList.id': new ObjectID(message.data.idComment) }, (errFindLike, resFindLike) => {
+
+                if (errFindLike) {
+                    SocketManager.emit("like/comment", { code: 500, data: { message: errFind } }, id);
+                } else if (resFindLike) {
+
+                    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.commentList.id': new ObjectID(message.data.idComment), 'picturesList.commentList.likeList.idUser': new ObjectID(message.auth) }, (errFindLike, resFindLike) => {
+
+                        if (errFindLike) {
+                            SocketManager.emit("like/comment", { code: 500, data: { message: errFind } }, id);
+                        } else if (resFindLike) {
+                            SocketManager.emit("like/comment", { code: 403, data: { message: "Commentaire déjà like" } }, id);
+                        } else {
+                            mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.commentList.id': new ObjectID(message.data.idComment) }, {
+                                $push: {
+                                    'picturesList.$.commentList.0.likeList': {
+                                        idUser: new ObjectID(message.auth)
+                                    }
+                                }
+                            }, (err, res) => {
+                                if (err) {
+                                    SocketManager.emit("like/comment", { code: 500, data: { message: err } }, id);
+                                } else {
+                                    //todo broadcast
+                                    SocketManager.emit("like/comment", { code: 200, data: { message: "commentaire like" } }, id);
+                                    SocketManager.broadcast("action", { code: 200, data: { action: "like/comment" } }, id)
+
+                                }
+                            })
+                        }
+                    })
+
+
+                } else {
+                    SocketManager.emit("like/comment", { code: 403, data: { message: "Commentaire non trouvé" } }, id);
+                }
+
+            })
+        } else {
+            SocketManager.emit("like/comment", { code: 403, data: { message: "Photo non trouvé" } }, id);
+        }
+    })
+}
+function unlikeComment(message, id) {
+    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
+
+        if (errFind) {
+            SocketManager.emit("unlike/comment", { code: 500, data: { message: errFind } }, id);
+        } else if (resFind) {
+
+            mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.commentList.id': new ObjectID(message.data.idComment) }, (errFindLike, resFindLike) => {
+
+                if (errFindLike) {
+                    SocketManager.emit("unlike/comment", { code: 500, data: { message: errFind } }, id);
+                } else if (resFindLike) {
+
+                    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.commentList.id': new ObjectID(message.data.idComment), 'picturesList.commentList.likeList.idUser': new ObjectID(message.auth) }, (errFindLike, resFindLike) => {
+
+                        if (errFindLike) {
+                            SocketManager.emit("unlike/comment", { code: 500, data: { message: errFind } }, id);
+                        } else if (resFindLike) {
+                            mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.commentList.id': new ObjectID(message.data.idComment) }, {
+                                $pull: {
+                                    'picturesList.$.commentList.0.likeList': {
+                                        idUser: new ObjectID(message.auth)
+                                    }
+                                }
+                            }, (err, res) => {
+                                if (err) {
+                                    SocketManager.emit("like/comment", { code: 500, data: { message: err } }, id);
+                                } else {
+                                    //todo broadcast
+                                    SocketManager.emit("like/comment", { code: 200, data: { message: "commentaire unlike" } }, id);
+                                    SocketManager.broadcast("action", { code: 200, data: { action: "unlike/comment" } }, id)
+                                }
+                            })
+                        } else {
+                            SocketManager.emit("unlike/comment", { code: 403, data: { message: "Utilisateur introuvable" } }, id);
+                        }
+                    })
+                } else {
+                    SocketManager.emit("unlike/comment", { code: 403, data: { message: "Commentaire introuvable" } }, id);
+                }
+            })
+        }else {
+            SocketManager.emit("unlike/comment", { code: 403, data: { message: "Photo non trouvé" } }, id);
+        }
+    })
 }
 
 

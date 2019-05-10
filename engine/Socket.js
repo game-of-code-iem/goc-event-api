@@ -163,6 +163,24 @@ function init(dispatcher, http) {
             }
         })
 
+        socket.on("like/comment", data => {
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("like/comment", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
+        })
+
+        socket.on("unlike/comment", data => {
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("unlike/comment", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
+        })
+
         socket.on("disconnect", reason => {
             console.log(reason)
             sockets.delete(socket.id)
