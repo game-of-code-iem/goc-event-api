@@ -31,6 +31,8 @@ dispatcher.add("get/users", getUsers)
 dispatcher.add("action", action)
 dispatcher.add("like/comment", likeComment)
 dispatcher.add("unlike/comment", unlikeComment)
+dispatcher.add("delete/comment", deleteComment)
+
 
 
 
@@ -581,6 +583,42 @@ function unlikeComment(message, id) {
             })
         }else {
             SocketManager.emit("unlike/comment", { code: 403, data: { message: "Photo non trouvé" } }, id);
+        }
+    })
+}
+
+function deleteComment(message, id) {
+    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
+
+        if (errFind) {
+            SocketManager.emit("delete/comment", { code: 500, data: { message: errFind } }, id);
+        } else if (resFind) {
+
+            mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture),'picturesList.commentList.id': new ObjectID(message.data.idComment) }, (errFindLike, resFindLike) => {
+
+                if (errFindLike) {
+                    SocketManager.emit("delete/comment", { code: 500, data: { message: errFind } }, id);
+                } else if (resFindLike) {
+                    mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, {
+                        $pull: {
+                            'picturesList.$.commentList': {
+                                id: new ObjectID(message.data.idComment)
+                            }
+                        }
+                    }, (err, res) => {
+                        if (err) {
+                            SocketManager.emit("delete/comment", { code: 500, data: { message: err } }, id);
+                        } else {
+                            SocketManager.emit("delete/comment", { code: 200, data: { message: "Commentaire supprimer" } }, id);
+                            SocketManager.broadcast("action", { code: 200, data: { action: "delete/comment" } }, id)
+                        }
+                    })
+                } else {
+                    SocketManager.emit("delete/comment", { code: 403, data: { message: "Commentaire introuvable" } }, id);
+                }
+            })
+        } else {
+            SocketManager.emit("delete/comment", { code: 403, data: { message: "Photo non trouvé" } }, id);
         }
     })
 }
