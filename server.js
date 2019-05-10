@@ -32,6 +32,8 @@ dispatcher.add("action", action)
 dispatcher.add("like/comment", likeComment)
 dispatcher.add("unlike/comment", unlikeComment)
 dispatcher.add("delete/comment", deleteComment)
+dispatcher.add("update/comment", updateComment)
+
 
 
 
@@ -321,7 +323,7 @@ function commentPost(message, id) {
     mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
 
         if (errFind) {
-            SocketManager.emit("coment/post", { code: 500, data: { message: errFind } }, id);
+            SocketManager.emit("comment/post", { code: 500, data: { message: errFind } }, id);
         } else if (resFind) {
             mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, {
                 $push: {
@@ -348,6 +350,34 @@ function commentPost(message, id) {
             })
         } else {
             SocketManager.emit("comment/post", { code: 403, data: { message: "Photo non trouvé" } }, id);
+
+        }
+    })
+}
+
+function updateComment(message, id) {
+    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
+
+        if (errFind) {
+            SocketManager.emit("update/comment", { code: 500, data: { message: errFind } }, id);
+        } else if (resFind) {
+            mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.commentList.id': new ObjectID(message.data.idComment) }, {
+                $set: {
+                    'picturesList.0.commentList.$.date': message.data.date,
+                    'picturesList.0.commentList.$.text': message.data.text               
+                }
+            }, (err, res) => {
+                if (err) {
+                    SocketManager.emit("update/comment", { code: 500, data: { message: err } }, id);
+                } else {
+                    //todo broadcast
+                    SocketManager.emit("update/comment", { code: 200, data: { message: "Commentaire modifier" } }, id);
+                    SocketManager.broadcast("action", { code: 200, data: { action: "update/comment" } }, id)
+
+                }
+            })
+        } else {
+            SocketManager.emit("update/comment", { code: 403, data: { message: "Photo non trouvé" } }, id);
 
         }
     })
@@ -489,7 +519,7 @@ function getUsers(message, id) {
     })
 
 }
-//todo
+
 function likeComment(message, id) {
     mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
 

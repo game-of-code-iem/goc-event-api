@@ -190,6 +190,15 @@ function init(dispatcher, http) {
             }
         })
 
+        socket.on("update/comment", data => {
+            try {
+                let message = JSON.parse(data)
+                Dispatcher.dispatch("update/comment", message, socket.id)
+            } catch (error) {
+                console.log("Anomalie: Invalid JSON PARSING" + error)
+            }
+        })
+
         socket.on("disconnect", reason => {
             console.log(reason)
             sockets.delete(socket.id)
