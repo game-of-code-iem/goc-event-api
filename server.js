@@ -36,7 +36,7 @@ function registerUser(message, id) {
     let uniqueMailAdressQuery = { mail: message.data.mail }
     mongoDB.getUser().findOne(uniqueMailAdressQuery, (error, results) => {
         if (error) {
-            SocketManager.emit("register/user", { code: 500, data: { message: error }}, id)
+            SocketManager.emit("register/user", { code: 500, data: { message: error } }, id)
         } else if (results) {
             SocketManager.emit("register/user", { code: 403, data: { message: "Adresse mail déja utilisé" } }, id);
         } else {
@@ -46,23 +46,23 @@ function registerUser(message, id) {
                 mongoDB.getUser().insertOne(objNew, (error, results) => {
                     if (error) {
                         SocketManager.emit("register/user", {
-                            code: 500, 
-                            data: { 
-                                message:error
+                            code: 500,
+                            data: {
+                                message: error
                             }
                         }, id);
                     } else {
-                        SocketManager.emit("register/user", { 
-                            code: 201, 
-                            data: { 
-                                message: "Utilisateur inscrit", 
-                                user: { 
-                                    id: results.insertedId, 
-                                    firstName: message.data.firstName, 
-                                    lastName: message.data.lastName, 
-                                    mail: message.data.mail 
-                                } 
-                            } 
+                        SocketManager.emit("register/user", {
+                            code: 201,
+                            data: {
+                                message: "Utilisateur inscrit",
+                                user: {
+                                    id: results.insertedId,
+                                    firstName: message.data.firstName,
+                                    lastName: message.data.lastName,
+                                    mail: message.data.mail
+                                }
+                            }
                         }, id)
                     }
                 });
@@ -71,50 +71,50 @@ function registerUser(message, id) {
     })
 }
 
-function loginUser(message,id) {
+function loginUser(message, id) {
     mongoDB.getUser().findOne({ mail: message.data.mail }, (err, result) => {
         if (result) {
             bcrypt.compare(message.data.password, result.password).then(res => {
                 if (res) {
-                    SocketManager.emit("login/user",{
+                    SocketManager.emit("login/user", {
                         code: 200, data: {
                             message: "Utilisateur connecté", user: {
-                                userId: result._id, 
-                                firstName: result.firstName, 
+                                userId: result._id,
+                                firstName: result.firstName,
                                 lastName: result.lastName,
                                 mail: result.mail
                             }
                         }
                     }, id);
                 } else {
-                    SocketManager.emit("login/user",{code:403,data:{message:"Mot de passe incorrecte"}},id);
+                    SocketManager.emit("login/user", { code: 403, data: { message: "Mot de passe incorrecte" } }, id);
                 }
             })
         } else {
-            SocketManager.emit("login/user",{code: 403,data:{message: "Adresse mail inconnue"}},id);
+            SocketManager.emit("login/user", { code: 403, data: { message: "Adresse mail inconnue" } }, id);
         }
     });
 
 }
 
 function addEvent(message, id) {
-    mongoDB.getEvent().findOne({inviteCode: message.data.inviteCode},(errorInvCode, resultsInvCode) => {
+    mongoDB.getEvent().findOne({ inviteCode: message.data.inviteCode }, (errorInvCode, resultsInvCode) => {
         if (errorInvCode) {
-            SocketManager.emit("add/event",{code:500,data:{message: errorInvCode}},id);
+            SocketManager.emit("add/event", { code: 500, data: { message: errorInvCode } }, id);
         } else if (resultsInvCode) {
-            SocketManager.emit("add/event",{code:403,data:{message:"Code d'invitation non unique"}},id);
+            SocketManager.emit("add/event", { code: 403, data: { message: "Code d'invitation non unique" } }, id);
         } else {
             let objNew = {
-                title: message.data.title, 
-                date: message.data.date, 
-                description: message.data.description, 
-                extension:message.data.extension,
-                uri:message.data.uri,
-                guests: [], 
-                admin: message.auth, 
-                inviteCode: message.data.inviteCode, 
-                picturesList: [], 
-                status: message.data.status, 
+                title: message.data.title,
+                date: message.data.date,
+                description: message.data.description,
+                extension: message.data.extension,
+                uri: message.data.uri,
+                guests: [],
+                admin: message.auth,
+                inviteCode: message.data.inviteCode,
+                picturesList: [],
+                status: message.data.status,
                 commentEventList: []
             };
             mongoDB.getEvent().insertOne(objNew, (error, results) => {
@@ -123,6 +123,7 @@ function addEvent(message, id) {
                 } else {
                     console.log(message)
                     SocketManager.emit("add/event", { code: 200, data: { message: "Event crée" } }, id);
+                    SocketManager.broadcast("action", { code: 200, data: { action: "add/event" } }, id)
                 }
             });
         }
@@ -130,7 +131,7 @@ function addEvent(message, id) {
 }
 
 function getEvent(message, id) {
-    mongoDB.getEvent().find({ $or: [{ admin: message.auth }, {'guests.id': new ObjectID(message.auth)}] }).toArray((err, res) => {
+    mongoDB.getEvent().find({ $or: [{ admin: message.auth }, { 'guests.id': new ObjectID(message.auth) }] }).toArray((err, res) => {
         if (err) {
             SocketManager.emit("get/event", { code: 500, data: { message: err } }, id);
         } else {
@@ -164,8 +165,8 @@ function updateEvent(message, id) {
                         title: message.data.title,
                         date: message.data.date,
                         description: message.data.description,
-                        extension:message.data.extension,
-                        uri:message.data.uri, 
+                        extension: message.data.extension,
+                        uri: message.data.uri,
                         inviteCode: message.data.inviteCode,
                         status: message.data.status
                     }
@@ -176,10 +177,10 @@ function updateEvent(message, id) {
                     } else {
                         //console.log("res update " + resUpdate)
                         SocketManager.emit("update/event", { code: 200, data: resUpdate }, id);
-                        SocketManager.broadcast("action",{ code: 200, data: { action: "update/event" } },id)
+                        SocketManager.broadcast("action", { code: 200, data: { action: "update/event" } }, id)
                     }
                 })
-        }else {
+        } else {
             SocketManager.emit("update/event", { code: 500, data: "no event found" }, id);
         }
         //console.log(message.data.idEvent)
@@ -188,11 +189,11 @@ function updateEvent(message, id) {
 }
 
 function getJoinedEvent(message, id) {
-    mongoDB.getEvent().find({'guests.id': new ObjectID(message.auth)}).toArray((err, res) => {
+    mongoDB.getEvent().find({ 'guests.id': new ObjectID(message.auth) }).toArray((err, res) => {
         if (err) {
             SocketManager.emit("get/joinedEvent", { code: 500, data: { message: err } }, id);
         } else {
-            SocketManager.emit("get/joinedEvent", { code: 200, data: res}, id);
+            SocketManager.emit("get/joinedEvent", { code: 200, data: res }, id);
         }
     })
 }
@@ -204,7 +205,7 @@ function deleteEvent(message, id) {
                 SocketManager.emit("delete/event", { code: 500, data: { message: err } }, id);
             } else {
                 SocketManager.emit("delete/event", { code: 200, data: { message: "Event supprimer" } }, id);
-                SocketManager.broadcast("action",{ code: 200, data: { action: "delete/event" } },id)
+                SocketManager.broadcast("action", { code: 200, data: { action: "delete/event" } }, id)
 
             }
         })
@@ -217,21 +218,23 @@ function joinEvent(message, id) {
         if (resultsGuests) {
             SocketManager.emit("join/event", { code: 403, data: { message: "Event déjà rejoint" } }, id);
         } else {
-            mongoDB.getEvent().updateOne({inviteCode: message.data.inviteCode},{$push:{ 
-                guests: {
-                    id: new ObjectID(message.auth),
-                    firstName: message.data.firstName,
-                    lastName: message.data.lastName,
-                    mail: message.data.mail
+            mongoDB.getEvent().updateOne({ inviteCode: message.data.inviteCode }, {
+                $push: {
+                    guests: {
+                        id: new ObjectID(message.auth),
+                        firstName: message.data.firstName,
+                        lastName: message.data.lastName,
+                        mail: message.data.mail
+                    }
                 }
-            }}, (err, res) => {
-                if (err){
+            }, (err, res) => {
+                if (err) {
                     SocketManager.emit("join/event", { code: 500, data: { message: err } }, id);
                 } else {
                     SocketManager.emit("join/event", { code: 200, data: { message: "Event Rejoint" } }, id);
-                    SocketManager.broadcast("action",{ code: 200, data: { action: "get/event" } },id)
+                    SocketManager.broadcast("action", { code: 200, data: { action: "join/event" } }, id)
 
-                }    
+                }
             });
         }
     });
@@ -243,12 +246,12 @@ function addPost(message, id) {
             $push: {
                 picturesList: {
                     id: new ObjectID(),
-                    extension:message.data.extension,
-                    uri:message.data.uri, 
+                    extension: message.data.extension,
+                    uri: message.data.uri,
                     userId: message.auth,
-                    firstName: message.data.firstName, 
-                    lastName: message.data.lastName, 
-                    likeList: [], 
+                    firstName: message.data.firstName,
+                    lastName: message.data.lastName,
+                    likeList: [],
                     commentList: []
                 }
             }
@@ -256,13 +259,15 @@ function addPost(message, id) {
             if (err) {
                 //console.log(err + "rr")
                 SocketManager.emit("add/post", { code: 500, data: { message: err } }, id);
-            } else if (res.modifiedCount == 0){
+            } else if (res.modifiedCount == 0) {
                 //console.log(res + "res")
                 SocketManager.emit("add/post", { code: 500, data: { message: "Event non trouvé" } }, id);
-               
-            }else {
+
+            } else {
                 //broadwast photo
-                SocketManager.broadcast("action",{ code: 200, data: { action: "get/event" } },id)
+                SocketManager.emit("add/post", { code: 200, data: { message: "Event ajouté" } }, id);
+                SocketManager.broadcast("action", { code: 200, data: { action: "add/post" } }, id)
+
 
             }
         })
@@ -270,19 +275,19 @@ function addPost(message, id) {
 
 function likePost(message, id) {
     mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
-    
+
         if (errFind) {
             SocketManager.emit("like/post", { code: 500, data: { message: errFind } }, id);
         } else if (resFind) {
-            
-            mongoDB.getEvent().findOne({_id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.likeList.idUser':new ObjectID(message.auth)},(errFindLike,resFindLike)=>{
-                
+
+            mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.likeList.idUser': new ObjectID(message.auth) }, (errFindLike, resFindLike) => {
+
                 if (errFindLike) {
                     SocketManager.emit("like/post", { code: 500, data: { message: errFind } }, id);
-                }else if(resFindLike){
+                } else if (resFindLike) {
                     SocketManager.emit("like/post", { code: 403, data: { message: "Event déjà like" } }, id);
-                }else {
-                    mongoDB.getEvent().updateOne({_id: new ObjectID(message.data.idEvent), 'picturesList.id':  new ObjectID(message.data.idPicture)}, {
+                } else {
+                    mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, {
                         $push: {
                             'picturesList.$.likeList': {
                                 idUser: new ObjectID(message.auth)
@@ -293,8 +298,9 @@ function likePost(message, id) {
                             SocketManager.emit("like/post", { code: 500, data: { message: err } }, id);
                         } else {
                             //todo broadcast
-                            SocketManager.broadcast("action",{ code: 200, data: { action: "get/event" } },id)
-        
+                            SocketManager.emit("like/post", { code: 200, data: { message: "photo like" } }, id);
+                            SocketManager.broadcast("action", { code: 200, data: { action: "like/post" } }, id)
+
                         }
                     })
                 }
@@ -307,7 +313,30 @@ function likePost(message, id) {
 
 function commentPost(message, id) {
 
+    mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, {
+        $push: {
+            'picturesList.$.commentList': {
+                id: new ObjectID(),
+                idUser: new ObjectID(message.auth),
+                date: message.data.date,
+                text: message.data.text,
+                firstName: message.data.firstName,
+                lastName: message.data.lastName,
+                mail: message.data.mail
+            }
+        }
+    }, (err, res) => {
+        if (err) {
+            SocketManager.emit("comment/post", { code: 500, data: { message: err } }, id);
+        } else {
+            //todo broadcast
+            SocketManager.emit("comment/post", { code: 200, data: { message: "photo commenté" } }, id);
+            SocketManager.broadcast("action", { code: 200, data: { action: "comment/post" } }, id)
+
+        }
+    })
 }
+
 
 function deletePost(message, id) {
 
@@ -315,17 +344,17 @@ function deletePost(message, id) {
 
 function unlikePost(message, id) {
     mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
-    
+
         if (errFind) {
-            SocketManager.emit("like/post", { code: 500, data: { message: errFind } }, id);
+            SocketManager.emit("unlike/post", { code: 500, data: { message: errFind } }, id);
         } else if (resFind) {
-            
-            mongoDB.getEvent().findOne({_id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.likeList.idUser':new ObjectID(message.auth)},(errFindLike,resFindLike)=>{
-                
+
+            mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture), 'picturesList.likeList.idUser': new ObjectID(message.auth) }, (errFindLike, resFindLike) => {
+
                 if (errFindLike) {
-                    SocketManager.emit("like/post", { code: 500, data: { message: errFind } }, id);
-                }else if(resFindLike){
-                    mongoDB.getEvent().updateOne({_id: new ObjectID(message.data.idEvent), 'picturesList.id':  new ObjectID(message.data.idPicture)}, {
+                    SocketManager.emit("unlike/post", { code: 500, data: { message: errFind } }, id);
+                } else if (resFindLike) {
+                    mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, {
                         $pull: {
                             'picturesList.$.likeList': {
                                 idUser: new ObjectID(message.auth)
@@ -333,17 +362,18 @@ function unlikePost(message, id) {
                         }
                     }, (err, res) => {
                         if (err) {
-                            SocketManager.emit("like/post", { code: 500, data: { message: err } }, id);
-                        } else {           
-                            SocketManager.broadcast("action",{ code: 200, data: { action: "get/event" } },id)      
+                            SocketManager.emit("unlike/post", { code: 500, data: { message: err } }, id);
+                        } else {
+                            SocketManager.emit("unlike/post", { code: 200, data: { message: "photo unlike" } }, id);
+                            SocketManager.broadcast("action", { code: 200, data: { action: "unlike/post" } }, id)
                         }
-                    })                  
-                }else {
-                    SocketManager.emit("like/post", { code: 403, data: { message: "Impossible d'unlike la photo" } }, id);
+                    })
+                } else {
+                    SocketManager.emit("unlike/post", { code: 403, data: { message: "Impossible d'unlike la photo" } }, id);
                 }
             })
         } else {
-            SocketManager.emit("like/post", { code: 403, data: { message: "Photo non trouvé" } }, id);
+            SocketManager.emit("unlike/post", { code: 403, data: { message: "Photo non trouvé" } }, id);
         }
     })
 }
@@ -358,7 +388,7 @@ function action(message, id) {
 
 //renvoie la liste des images d'un event
 function getPost(message, id) {
-    mongoDB.getEvent().find({_id: new ObjectID(message.data.idEvent)}).toArray((err, res) => {
+    mongoDB.getEvent().find({ _id: new ObjectID(message.data.idEvent) }).toArray((err, res) => {
         if (err) {
             SocketManager.emit("get/post", { code: 500, data: { message: err } }, id);
         } else {
@@ -370,7 +400,7 @@ function getPost(message, id) {
 
 //renvoie la liste users
 function getUsers(message, id) {
-    mongoDB.getUser().find({}).project({_id:1,firstName:1,lastName:1,mail:1}).toArray((err, res) => {
+    mongoDB.getUser().find({}).project({ _id: 1, firstName: 1, lastName: 1, mail: 1 }).toArray((err, res) => {
         if (err) {
             SocketManager.emit("get/users", { code: 500, data: { message: err } }, id);
         } else {
