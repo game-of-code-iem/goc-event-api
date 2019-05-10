@@ -349,7 +349,39 @@ function commentPost(message, id) {
 
 
 function deletePost(message, id) {
+    mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, (errFind, resFind) => {
 
+        if (errFind) {
+            SocketManager.emit("delete/post", { code: 500, data: { message: errFind } }, id);
+        } else if (resFind) {
+
+            mongoDB.getEvent().findOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture)}, (errFindLike, resFindLike) => {
+
+                if (errFindLike) {
+                    SocketManager.emit("delete/post", { code: 500, data: { message: errFind } }, id);
+                } else if (resFindLike) {
+                    mongoDB.getEvent().updateOne({ _id: new ObjectID(message.data.idEvent), 'picturesList.id': new ObjectID(message.data.idPicture) }, {
+                        $pull: {
+                            picturesList: {
+                                id: new ObjectID(message.data.idPicture)
+                            }
+                        }
+                    }, (err, res) => {
+                        if (err) {
+                            SocketManager.emit("delete/post", { code: 500, data: { message: err } }, id);
+                        } else {
+                            SocketManager.emit("delete/post", { code: 200, data: { message: "photo supprimer" } }, id);
+                            SocketManager.broadcast("action", { code: 200, data: { action: "delete/post" } }, id)
+                        }
+                    })
+                } else {
+                    SocketManager.emit("delete/post", { code: 403, data: { message: "Impossible de supprimer la photo" } }, id);
+                }
+            })
+        } else {
+            SocketManager.emit("delete/post", { code: 403, data: { message: "Photo non trouvé" } }, id);
+        }
+    })
 }
 
 function unlikePost(message, id) {
